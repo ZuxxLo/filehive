@@ -45,12 +45,8 @@ class FileViewSet(ViewSet):
 
                
             try:
-                # print(User.objects.get())
-                #  owner_id = ObjectId(owner_id)
                 owner = User.objects.get(id=owner_id)
-            except User.DoesNotExist:
-                # print("Owner does not exist with ID:", owner_id)
-                
+            except User.DoesNotExist:                
                 return BaseResponse(data="", status_code=status.HTTP_400_BAD_REQUEST, message='Owner does not exist.', error=True)
             
             serializer.save()

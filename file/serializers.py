@@ -6,17 +6,25 @@ from user.serializers import UserSerializer
 from user.models import User
 
 class FileSerializer(serializers.ModelSerializer): 
-    owner = UserSerializer() 
+
+ 
     class Meta:
         model = File
         fields = ('id', 'title', 'file', 'owner','date_created','updated_date')
-    def update(self, instance, validated_data):
-        # Ensure 'id' and 'owner' fields are not modified
-        if 'id' in validated_data or 'owner' in validated_data:
-            raise serializers.ValidationError("Cannot update 'id' or 'owner' fields.")
-        
-        return super().update(instance, validated_data)        
 
+    def to_representation(self, instance):
+        response = super().to_representation(instance)
+        owner_id = response.get('owner')
+        owner = User.objects.get(id=owner_id)
+        response['owner'] = UserSerializer(owner).data
+        return response    
+    
+    def update(self, instance, validated_data):
+        # Remove owner field from validated data
+        validated_data.pop('owner', None)
+
+        return super().update(instance, validated_data)
+    
     def create(self, validated_data):
         # Ensure 'id' field is not provided by the user
         validated_data.pop('id', None)
