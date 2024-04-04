@@ -15,3 +15,11 @@
 - regarding the venv file whether u are in windows or Linux, u need to create a virtual env for python pacakges in order to resolve the imports in vscode:
    - Linux: `source venv/bin/active`
    - Windows: in vscode terminal: `.\venv\bin\activate`
+- For **NASSIM**: after u complete ur work and create data/rows/tables in the database and u verify that u completed all the functions as intended:
+   1. store the database data:
+       1. create a folder in the fixtures called based on the app/function u did:
+       2. do the cmd: `python manage.py dumpdata ur_app_name > fixtures/ur_app_or_function_name/data.json`
+       3. don't forget to apply migrations before that
+   2. save the installed packages: access the django-container and do this commands in order to keep updating installed pacakges:
+     - `rm requirements.txt`
+     - `pip freeze -l > requirements.txt`
