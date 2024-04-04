@@ -25,5 +25,6 @@ done
 
 # Start the Django development server
 
-echo "Starting Django development server..."
+echo "Starting Django development server......"
+echo "Access it on http://localhost:8000 "
 python manage.py runserver 0.0.0.0:8000
