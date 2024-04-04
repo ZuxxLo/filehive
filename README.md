@@ -23,3 +23,13 @@
    2. save the installed packages: access the django-container and do this commands in order to keep updating installed pacakges:
      - `rm requirements.txt`
      - `pip freeze -l > requirements.txt`
+- VsCode extentions to install:
+   - Dev Containers by microsoft
+   - Remote - SSH by microsoft
+   - Remote - SSH: Editing Configuration Files by microsoft
+   - Remote - Tunnels by microsoft
+   - Remote Development by microsoft
+   - Remote Explorer by microsoft
+
+### Remark:
+- Probably I will keep updating the docker-config and the automating stuff
