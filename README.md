@@ -12,3 +12,6 @@
 - In order to execute specially related to django there is 2 method:
    1. recommended-way: open a Terminal/CMDLine and run `docker exec -it django_container_id sh`: u got a shell and execute the cmds u want for example: `python manage.py runserver` or python manage.py migrate` or installing any python-package using pip
    2. 2nd-method: execute a cmd on the container using docker  : `docker-compose run django ur_cmd_here` for example: `docker-compose run django python manage.py migrate`
+- regarding the venv file whether u are in windows or Linux, u need to create a virtual env for python pacakges in order to resolve the imports in vscode:
+   - Linux: `source venv/bin/active`
+   - Windows: in vscode terminal: `.\venv\bin\activate`
