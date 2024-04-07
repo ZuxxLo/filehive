@@ -23,7 +23,6 @@ for fixture_dir in fixtures/*; do
     fi
 done
 
-# Start the Django development server
 
 echo "Starting Django development server......"
 echo "Access it on http://localhost:8000 "

@@ -17,6 +17,11 @@ from datetime import timedelta
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+import django 
+from django.utils.encoding import force_str
+django.utils.encoding.force_text = force_str
+
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
@@ -45,14 +50,13 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
-    'debug_toolbar',
     'drf_spectacular',
     'drf_spectacular_sidecar',
 
 ]
 
 MIDDLEWARE = [
-    "debug_toolbar.middleware.DebugToolbarMiddleware",
+  
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -61,7 +65,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'corsheaders.middleware.CorsMiddleware',
-   
+ 
 
 ]
 
@@ -70,7 +74,7 @@ ROOT_URLCONF = 'filehive.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': ["templates"],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -198,7 +202,9 @@ AUTH_USER_MODEL = 'filehive_auth.User'
 # password: filehive
 
 
-INTERNAL_IPS = ['127.0.0.1', ]
+INTERNAL_IPS = ['127.0.0.1',
+                    '172.18.0.3',
+                 ]
 
 
 # swagger UI config
@@ -212,3 +218,11 @@ SPECTACULAR_SETTINGS = {
     'REDOC_DIST': 'SIDECAR',
     # OTHER SETTINGS
 }
+# EMAIL_HOST='smtpout.secureserver.net'
+EMAIL_HOST='smtp.gmail.com'
+EMAIL_HOST_USER='m.remmane@esi-sba.dz'
+
+EMAIL_HOST_PASSWORD='ruqikcvgnggaazki'
+EMAIL_PORT=587
+EMAIL_USE_TLS=True
+EMAIL_BACKEND='django.core.mail.backends.smtp.EmailBackend'

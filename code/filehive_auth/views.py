@@ -10,15 +10,21 @@ from .serializers import UserSerializer
 from .serializers import MyTokenObtainPairSerializer
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 
-
-
-
-
-
+# for sending mails and generate token
+from django.template.loader import render_to_string
+from django.utils.http import urlsafe_base64_decode,urlsafe_base64_encode
+from .utils import TokenGenerator,generate_token
+from django.utils.encoding import force_bytes,force_text,DjangoUnicodeDecodeError
+from django.core.mail import EmailMessage
+from django.conf import settings
+from django.views.generic import View
+from django.shortcuts import render
 
 
 class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer
+
+
 
 
 @extend_schema(
@@ -38,10 +44,46 @@ class RegisterView(APIView):
     def post(self, request):
         serializer = UserSerializer(data= request.data)
         serializer.is_valid(raise_exception=True)
-        serializer.save()
+        user = serializer.save()
+
+        # generate token for sending mail
+        email_subject = "Verify Your Account"
+        message= render_to_string(
+            "verify.html",
+           {
+            'user':user,
+            'domain': '127.0.0.1:8000',
+            'uid':urlsafe_base64_encode(force_bytes(user.pk)),
+            'token': generate_token.make_token(user)
+           }
+
+        )
+     
+        email_message = EmailMessage(
+                email_subject, message,settings.EMAIL_HOST_USER, to=[user.email]
+            )
+        email_message.content_subtype = 'html'
+        email_message.send()
         return Response({'message': 'User registration successful!', 'user': serializer.data}, status=status.HTTP_201_CREATED)
+   
 
 
+
+class VerifyAccountView(APIView):
+    def get(self, request, uidb64, token):
+        try:
+            uid= force_text(urlsafe_base64_decode(uidb64))
+            user= User.objects.get(pk=uid)
+        except Exception as identifier:
+            user=None
+        if user is not None and generate_token.check_token(user,token):
+            user.is_verified = True
+            user.save()
+            return render(request,"verifysuccess.html")
+        else:
+            return render(request,"verifyfail.html")   
+
+# Login things
 
 @extend_schema(
     parameters=[
@@ -66,14 +108,35 @@ class LoginView(APIView):
             raise AuthenticationFailed("User not Found!")
         if not user.check_password(password):
             raise AuthenticationFailed('Incorrect Password')
-     
+        if not user.is_verified:
+            email_subject = "Verify Your Account"
+            message = render_to_string(
+                "verify.html",
+                {
+                    'user': user,
+                    'domain': '127.0.0.1:8000',  # Adjust domain as needed
+                    'uid': urlsafe_base64_encode(force_bytes(user.pk)),
+                    'token': generate_token.make_token(user)
+                }
+            )
+            email_message = EmailMessage(
+                email_subject, message, settings.EMAIL_HOST_USER, to=[user.email]
+            )
+            email_message.content_subtype = 'html'
+            email_message.send()
+
+            return Response({'message': 'user not verified. Verification email sent. Please Verify Your email and Login Again'}, status=status.HTTP_403_FORBIDDEN)
+
         tokens = MyTokenObtainPairSerializer.get_token(user)  # Get tokens directly
         refresh = str(tokens)
         access = str(tokens.access_token)
         # type = tokens.access_token.token_type
         # type = tokens.token_type for refresh type
+        serializer = UserSerializer(user)
+        user_data = serializer.data
         return Response({
                 'message': 'Login User Successful!',
+                'user': user_data,
                 'refresh_access': refresh,
                 'acess_token': access,  # Unpack tokens into the response
             }, status=status.HTTP_200_OK)

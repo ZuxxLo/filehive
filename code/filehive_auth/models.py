@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from .utils import user_directory_path
 
+
 # overrding the user creation with super user
 class CustomUserManager(BaseUserManager):
     def create_user(self, email, password=None,**extra_fields):
@@ -49,11 +50,21 @@ class User(AbstractUser):
     REQUIRED_FIELDS = []
     objects = CustomUserManager()
     
-    def __str__(self):
 
-        return f"User_{self.id}_{self.get_full_name()}"
+    class Meta:
+        db_table = "Users"
+        verbose_name = "User"
+        verbose_name_plural = "users"
+    def __str__(self):
+        if self.is_superuser:
+            return f"User_admin"
+        else:
+
+            return f"User_{self.id}_{self.get_full_name()}"
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
     
-  
+
    
 
 
