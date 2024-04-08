@@ -216,13 +216,16 @@ SPECTACULAR_SETTINGS = {
     'SWAGGER_UI_DIST': 'SIDECAR',  # shorthand to use the sidecar instead
     'SWAGGER_UI_FAVICON_HREF': 'SIDECAR',
     'REDOC_DIST': 'SIDECAR',
-    # OTHER SETTINGS
-}
-# EMAIL_HOST='smtpout.secureserver.net'
-EMAIL_HOST='smtp.gmail.com'
-EMAIL_HOST_USER='m.remmane@esi-sba.dz'
 
-EMAIL_HOST_PASSWORD='ruqikcvgnggaazki'
+}
+
+EMAIL_HOST='smtp.gmail.com'
+EMAIL_HOST_USER='filehiveteam@gmail.com'
+
+# EMAIL_HOST_PASSWORD='ruqikcvgnggaazki'
+EMAIL_HOST_PASSWORD='elajpyobixrvlpxi'
+
+# elaj pyob ixrv lpxi
 EMAIL_PORT=587
 EMAIL_USE_TLS=True
 EMAIL_BACKEND='django.core.mail.backends.smtp.EmailBackend'

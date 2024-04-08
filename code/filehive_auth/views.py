@@ -3,22 +3,20 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.views import TokenObtainPairView
-
+from rest_framework import serializers
+from rest_framework.generics import GenericAPIView
 from .models import User
 
 from .serializers import UserSerializer
 from .serializers import MyTokenObtainPairSerializer
-from drf_spectacular.utils import extend_schema, OpenApiParameter
-
+from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiResponse
 # for sending mails and generate token
 from django.template.loader import render_to_string
 from django.utils.http import urlsafe_base64_decode,urlsafe_base64_encode
 from .utils import TokenGenerator,generate_token
-from django.utils.encoding import force_bytes,force_text,DjangoUnicodeDecodeError
+from django.utils.encoding import force_bytes,force_text
 from django.core.mail import EmailMessage
 from django.conf import settings
-from django.views.generic import View
-from django.shortcuts import render
 
 
 class MyTokenObtainPairView(TokenObtainPairView):
@@ -27,21 +25,34 @@ class MyTokenObtainPairView(TokenObtainPairView):
 
 
 
+
+
+
+# register view *********** *********** *********** *********** *********** *********** *********** ***********
+class RegisterRequestSerializer(serializers.Serializer):
+    email = serializers.EmailField(max_length=254)
+    first_name = serializers.CharField(max_length=100)
+    last_name = serializers.CharField(max_length=100)
+    password = serializers.CharField()
+
+
 @extend_schema(
-    parameters=[
-        OpenApiParameter('email', required=True, description='Email address', type=str),
-        OpenApiParameter('password', required=True, description='Password', type=str),
-        OpenApiParameter('first_name', required=True, description='First name', type=str),  # Added line for first_name
-        OpenApiParameter('last_name', required=True, description='Last name', type=str), 
-    ],
+    description= "This route is for creating accounts, the Sign-up route",
+    request= RegisterRequestSerializer,
     responses={
-        200: 'User Details',
-        400: 'Bad request',
-    },
+        200: OpenApiResponse(response={
+                "type": "object",
+                "properties": {
+                    "message": {"type": "string"},
+                    "user": {"type": "object"}
+                }
+            }),
+        400: OpenApiResponse(description="Bad request, invalid data"),
+    }
 )
-# sign-up code
+
 class RegisterView(APIView):
-    
+  
     def post(self, request):
         serializer = UserSerializer(data= request.data)
         serializer.is_valid(raise_exception=True)
@@ -68,10 +79,29 @@ class RegisterView(APIView):
         return Response({'message': 'User registration successful!', 'user': serializer.data}, status=status.HTTP_201_CREATED)
    
 
-class VerifyEmail(APIView):
+class VerifyEmailSerializer(serializers.Serializer):
+    uidb64 = serializers.CharField(required=True)
+    token = serializers.CharField(required=True)
+
+@extend_schema(
+    description="the backend will send the verification url that contains the token related to front-side (this is a special route for the front)",
+
+    request= VerifyEmailSerializer
+
+)
+class VerifyEmail(GenericAPIView):
     def get(self, request, uidb64, token):
         print("message sent")
 
+# verifiy Account token view *******************************
+@extend_schema(
+     description="Verify user account using the provided uidb64 and token.",
+     responses= {
+         200: OpenApiResponse(description="Account verified successfully"),
+         400: OpenApiResponse(description= "Invalid UID or Token."),
+         403: OpenApiResponse(description="Verification failed")
+     }
+)
 class VerifyAccountView(APIView):
     def get(self, request, uidb64, token):
         try:
@@ -94,16 +124,26 @@ class VerifyAccountView(APIView):
              
             }, status=status.HTTP_403_FORBIDDEN)
 
-# Login code
+# Login View****************************************************************************
+class LoginRequestSerializer(serializers.Serializer):
+    email = serializers.EmailField(max_length=254)
+    password = serializers.CharField()
 @extend_schema(
-    parameters=[
-        OpenApiParameter('email', required=True, description='Email address'),
-        OpenApiParameter('password', required=True, description='Password'),
-    ],
+    description= "User enters his creds and sign-in and there is Email-Verification check",
+    request=LoginRequestSerializer,
     responses={
-        200: 'Token response',
-        400: 'Bad request',
-    },
+            200: OpenApiResponse(response={
+                "type": "object",
+                "properties": {
+                    "message": {"type": "string"},
+                    "access_token": {"type": "string"},
+                    "refresh_token": {"type": "string"} 
+                }
+            }),
+            400: OpenApiResponse(description="Bad request, invalid creds"),
+            403: OpenApiResponse(description="User not verified (verification email sent)"),
+            404: OpenApiResponse(description= "User not found"),
+    }
 )
 class LoginView(APIView):
 
@@ -147,13 +187,24 @@ class LoginView(APIView):
         return Response({
                 'message': 'Login User Successful!',
                 'user': user_data,
-                'refresh_access': refresh,
+                'refresh_token': refresh,
                 'acess_token': access,  # Unpack tokens into the response
             }, status=status.HTTP_200_OK)
 # Reset Password Section
 
-
-class SendResetEmail(APIView):
+# send email-reset section **************************************************************
+class SendResetEmailRequestSerializer(serializers.Serializer):
+    email = serializers.EmailField(max_length=254)
+@extend_schema(
+    description="the front-client will send a reset-password request to this route",
+    request=SendResetEmailRequestSerializer,
+    responses= {
+            200: OpenApiResponse(description="Reset password email sent successfully"),
+            400: OpenApiResponse(description="Bad request, invalid request data"),
+            404: OpenApiResponse(description= "User not found"),
+    }
+)
+class SendResetEmail(APIView):  
     def post(self, request):
         email = request.data['email']
         user = User.objects.filter(email=email).first()
@@ -177,6 +228,17 @@ class SendResetEmail(APIView):
         return Response({
             "message": f'Reset Password email was sent to this email: {user.email}'
         })
+    
+# Veriviy Reset View wih the token veririfcation****************************************
+@extend_schema(
+    description= "the front will send the uset token for reset password and verify it to send a response",
+  
+    responses={
+        200: OpenApiResponse(description="success: now you change password"),
+        400: OpenApiResponse(description="Invalid uidb64 or token"),
+        403: OpenApiResponse(description="Verification failed (e.g., user not found)")
+    }
+)
 class VerifyReset(APIView):
    def post(self, request, uidb64, token):
         try:
@@ -198,12 +260,40 @@ class VerifyReset(APIView):
              
             }, status=status.HTTP_400_BAD_REQUEST)
 
+class ResetEmailSerializer(serializers.Serializer):
+    uidb64 = serializers.CharField(required=True)
+    token = serializers.CharField(required=True)
 
-class ResetEmail(APIView):
+@extend_schema(
+    description="the backend will send the reset-password verification url that contains the token related to front-side (this is a special route for the front)",
+    request= ResetEmailSerializer
+)
+class ResetEmail(GenericAPIView):
     def get(self, request, uidb64, token):
         print("message sent")
 
 
+
+# ResetPassword view ****************************************************************************
+class ResetPasswordRequestSerializer(serializers.Serializer):
+    email = serializers.EmailField(max_length=254)
+    password = serializers.CharField()
+@extend_schema(
+    description="the front-client will send a reset-password to this route",
+    request=ResetPasswordRequestSerializer,
+    responses= {
+            200: OpenApiResponse(response={
+                "type": "object",
+                "properties": {
+                    "message": {"type": "string"},
+                    "user": {"type": "object"}
+                }
+            }),
+            400: OpenApiResponse(description="Bad request, Provide new password"),
+            403: OpenApiResponse(description="User not verified (verification email sent)"),
+            404: OpenApiResponse(description= "User not found"),
+    }
+)
 class ResetPasswordView(APIView):
     def post(self, request):
         email = request.data['email']
@@ -227,7 +317,7 @@ class ResetPasswordView(APIView):
             )
             email_message.content_subtype = 'html'
             email_message.send()
-            return Response({'message': 'user not verified. Verification email sent. Please Verify Your email and Login Again'}, status=status.HTTP_403_FORBIDDEN)
+            return Response({'message': 'user not verified. Verification email sent. Please Verify Your email and Try Again'}, status=status.HTTP_403_FORBIDDEN)
 
         if newPassword is not None :
             user.set_password(newPassword)
