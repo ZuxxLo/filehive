@@ -11,33 +11,40 @@ from django.conf import settings
 import uuid
 
 
-
 class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id','email',  'password', 'first_name', 'last_name', 'is_active', 'is_verified', 'is_superuser']
+        fields = [
+            "id",
+            "email",
+            "password",
+            "profilePicture",
+            "first_name",
+            "last_name",
+            "is_active",
+            "is_verified",
+            "is_superuser",
+        ]
         # extra_kwargs = {'password': {'write_only': True}}
-    
 
     def create(self, validated_data):
         password = validated_data.pop("password", None)
         instance = self.Meta.model(**validated_data)
-        
+
         instance.is_verified = False
         if password is not None:
             instance.set_password(password)
             instance.save()
-        
-        
+
         # self.send_verification_email(instance)
         return instance
-    
+
     # def get_verification_link(self, obj):
     #     current_site = get_current_site(self.context['request'])
     #     verification_url = reverse('verify-email', args=[obj.id, obj.verification_token])
     #     return f'http://{current_site.domain}{verification_url}'
-    
+
     # def send_verification_email(self, user):
     #     user.verification_token = str(uuid.uuid4())
     #     user.save()
@@ -51,16 +58,15 @@ class UserSerializer(serializers.ModelSerializer):
 
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
 
-
     @classmethod
     def get_token(cls, user):
         token = super().get_token(user)
-  
-        token['email'] = user.email
-        token['first_name'] = user.first_name
-        token['last_name'] = user.last_name
-        token['profilePicture'] = str(user.profilePicture)
-        token['is_verified'] = user.is_verified
-        token['is_active'] = user.is_active
-    
+
+        token["email"] = user.email
+        token["first_name"] = user.first_name
+        token["last_name"] = user.last_name
+        token["profilePicture"] = str(user.profilePicture)
+        token["is_verified"] = user.is_verified
+        token["is_active"] = user.is_active
+
         return token
