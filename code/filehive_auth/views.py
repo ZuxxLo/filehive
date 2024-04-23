@@ -272,7 +272,8 @@ class VerifyReset(APIView):
         if user is not None and generate_token.check_token(user, token):
 
             return Response(
-                {"message": f"Now You can Change password", "status": "success"},
+                {"message": f"Now You can Change password", "status": "success",
+                "email": f"{user.email}"},
                 status=status.HTTP_200_OK,
             )
         else:

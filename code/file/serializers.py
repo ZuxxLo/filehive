@@ -12,7 +12,7 @@ class FileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = File
-        fields = ("id", "title", "file", "owner", "date_created", "updated_date")
+        fields = ("id", "title", "file", "owner", "date_created", "updated_date", "file_type")
 
     def to_representation(self, instance):
         response = super().to_representation(instance)
