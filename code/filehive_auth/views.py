@@ -3,8 +3,10 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.views import TokenObtainPairView
+
 from rest_framework import serializers
 from rest_framework.generics import GenericAPIView
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from .models import User
 
 from .serializers import UserSerializer
@@ -17,7 +19,7 @@ from .utils import TokenGenerator,generate_token
 from django.utils.encoding import force_bytes,force_text
 from django.core.mail import EmailMessage
 from django.conf import settings
-
+from jwt import decode, exceptions
 
 class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer
@@ -270,7 +272,23 @@ class ResetEmailSerializer(serializers.Serializer):
 )
 class ResetEmail(GenericAPIView):
     def get(self, request, uidb64, token):
-        print("message sent")
+        try:
+            uid = force_text(urlsafe_base64_decode(uidb64))
+            user = User.objects.get(pk=uid)
+        except Exception as identifier:
+            user= None
+        if user is not None and generate_token.check_token(user, token):
+            return Response({
+                'user_email': f"{user.email}",
+                "status": "succes"
+            }, status=status.HTTP_200_OK)
+        else:
+            return Response({
+                'message': f"Error in url or token ",
+                'status': 'failed'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        # send email in this route
+
 
 
 
@@ -335,3 +353,45 @@ class ResetPasswordView(APIView):
     
 
 
+######Update-password view
+
+
+class UpdatePasswordView(APIView):
+    permission_classes = [IsAuthenticated]
+    def put(self, request):
+        
+        old_password = request.data['old_password']
+        new_password = request.data['new_password']
+
+        auth_header = request.META.get('HTTP_AUTHORIZATION')
+        if not auth_header:
+            raise AuthenticationFailed('the authorization header was not provided nigga!.')
+        parts = auth_header.split(' ')
+        if parts[0].lower() != 'bearer':
+                raise AuthenticationFailed('Invalid authentication header. Use Bearer.')
+        token = parts[1]
+        try:
+            payload = decode(token, settings.SIMPLE_JWT['SIGNING_KEY'], algorithms=[settings.SIMPLE_JWT['ALGORITHM']] )
+            email = str(payload['email'])
+            user = User.objects.filter(email=email).first()
+            if not user.check_password(old_password):
+                return Response({
+                    "error": "Invalid old password"
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            user.set_password(new_password)
+            user.save()
+            return Response({
+                "message": "Password updated successfully",
+                "status": "success"
+        }, status=status.HTTP_202_ACCEPTED)
+        except exceptions.DecodeError as e:
+            raise AuthenticationFailed('Invalid token format.')
+        except exceptions.ExpiredSignatureError as e:
+            raise AuthenticationFailed('Token has expired.')
+        except exceptions.InvalidSignatureError as e:
+            raise AuthenticationFailed('Invalid token signature.')
+        except exceptions.JWTError as e:
+            raise AuthenticationFailed('An error occurred while decoding the token.')
+        
+       
