@@ -1,44 +1,10 @@
-from rest_framework import generics
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
 from .models import File
 from .serializers import FileSerializer
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.exceptions import AuthenticationFailed
-
-# Create your views here.
 from rest_framework.viewsets import ViewSet
-from rest_framework.response import Response
 from rest_framework import status
-
-# from bson import ObjectId
-import re
-from response.base_response import BaseResponse
-
+from utils.response.base_response import BaseResponse
 from filehive_auth.models import User
-from rest_framework.views import APIView
-
-
-def is_valid_objectid(file_id):
-    """
-    Checks if the provided string is a valid ObjectId.
-    """
-    return True
-    # return bool(re.match(r'^[0-9a-fA-F]{24}$', file_id))
-
-
-# ViewSets define the view behavior.
-
-
-# def get_permissions(self):
-#     # check the action and return the permission class accordingly
-#     if self.action == "create":
-#         return [
-#             # IsAdminUser(),
-#         ]
-#     return [
-#         IsAuthenticated(),
-#     ]
 
 
 class FileViewSet(ViewSet):
@@ -46,15 +12,9 @@ class FileViewSet(ViewSet):
     serializer_class = FileSerializer
 
     def list(self, request):
-
-        # auth_header = request.META.get("HTTP_AUTHORIZATION")
-        # if not auth_header:
-        #     raise AuthenticationFailed("the authorization header was not provided!.")
-        # parts = auth_header.split(" ")
-        # if parts[0].lower() != "bearer":
-        #     raise AuthenticationFailed("Invalid authentication header. Use Bearer.")
         files = File.objects.all()
         serializer = FileSerializer(files, many=True)
+
         return BaseResponse(
             data=serializer.data,
             status_code=status.HTTP_200_OK,
@@ -176,10 +136,20 @@ class FileViewSet(ViewSet):
                 error=True,
             )
 
+        # Check if 'title' field is provided
+        # if "title" not in request.data:
+        #     return BaseResponse(
+        #         data="",
+        #         status_code=status.HTTP_400_BAD_REQUEST,
+        #         message="Title field is required.",
+        #         error=True,
+        #     )
+
         serializer = FileSerializer(file_obj, data=request.data, partial=True)
         if "id" in serializer.fields:
             del serializer.fields["id"]
-
+        # Check if 'title' field is present and not empty in the request data
+        print(request.data)
         if serializer.is_valid():
             serializer.save()
             return BaseResponse(

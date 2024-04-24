@@ -21,6 +21,8 @@ from django.utils.encoding import force_bytes, force_text
 from django.core.mail import EmailMessage
 from django.conf import settings
 from jwt import decode, exceptions
+from file.models import File
+from file.serializers import FileSerializer
 
 
 class MyTokenObtainPairView(TokenObtainPairView):
@@ -199,10 +201,17 @@ class LoginView(APIView):
         # type = tokens.token_type for refresh type
         serializer = UserSerializer(user)
         user_data = serializer.data
+        files = File.objects.filter(owner=user)
+        file_serializer = FileSerializer(files, many=True)
+        for file_data in file_serializer.data:
+            if "owner" in file_data:
+                del file_data["owner"]
+
         return Response(
             {
                 "message": "Login User Successful!",
                 "user": user_data,
+                "files": file_serializer.data,
                 "refresh_token": refresh,
                 "acess_token": access,  # Unpack tokens into the response
             },
