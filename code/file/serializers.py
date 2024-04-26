@@ -8,6 +8,13 @@ from .models import File
 from filehive_auth.serializers import UserSerializer
 
 from filehive_auth.models import User
+from drf_spectacular.utils import (
+    extend_schema,
+    OpenApiParameter,
+    OpenApiResponse,
+    OpenApiExample,
+    extend_schema_serializer,
+)
 
 
 class CustomValidationError(serializers.ValidationError):
@@ -15,6 +22,7 @@ class CustomValidationError(serializers.ValidationError):
     default_code = ""
 
 
+@extend_schema_serializer(exclude_fields=["owner"])
 class FileSerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -46,5 +54,6 @@ class FileSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         # Ensure 'id' field is not provided by the user
         validated_data.pop("id", None)
+        # validated_data.pop("owner", None)
 
         return super().create(validated_data)
