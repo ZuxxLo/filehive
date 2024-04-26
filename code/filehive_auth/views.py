@@ -7,6 +7,8 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework import serializers
 from rest_framework.generics import GenericAPIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
+
+from utils.response.base_response import BaseResponse
 from .models import User
 
 from .serializers import UserSerializer
@@ -440,3 +442,56 @@ class UpdatePasswordView(APIView):
             raise AuthenticationFailed("Invalid token signature.")
         except exceptions.JWTError as e:
             raise AuthenticationFailed("An error occurred while decoding the token.")
+
+
+class GetUserView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+
+        user_id = None
+        if "HTTP_AUTHORIZATION" in request.META:
+            auth_header = request.META["HTTP_AUTHORIZATION"]
+            user_id = extract_owner_id_from_token(auth_header)
+        if not user_id:
+            return None
+
+        try:
+            user = User.objects.get(id=user_id)
+            serializer = UserSerializer(user)
+
+            files = File.objects.filter(owner=user)
+            file_serializer = FileSerializer(files, many=True)
+            for file_data in file_serializer.data:
+                if "owner" in file_data:
+                    del file_data["owner"]
+            return BaseResponse(
+                status_code=status.HTTP_200_OK,
+                error=False,
+                message="User informations retreived successfully",
+                data={
+                    "user": serializer.data,
+                    "files": file_serializer.data,
+                },
+            )
+        except Exception as e:
+            return BaseResponse(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                error=True,
+                message=str(e),
+                data=str(e),
+            )
+
+
+def extract_owner_id_from_token(auth_header):
+
+    try:
+        token = auth_header.split()[1]
+        payload = decode(
+            token,
+            settings.SIMPLE_JWT["SIGNING_KEY"],
+            algorithms=[settings.SIMPLE_JWT["ALGORITHM"]],
+        )
+        return payload.get("user_id", None)
+    except Exception as e:
+        return None
