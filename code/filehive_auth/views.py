@@ -193,8 +193,8 @@ class LoginView(APIView):
             )
 
         tokens = MyTokenObtainPairSerializer.get_token(user)  # Get tokens directly
-        refresh = str(tokens)
-        access = str(tokens.access_token)
+        # refresh = str(tokens)
+        # access = str(tokens.access_token)
         # type = tokens.access_token.token_type
         # type = tokens.token_type for refresh type
         serializer = UserSerializer(user)
@@ -203,8 +203,8 @@ class LoginView(APIView):
             {
                 "message": "Login User Successful!",
                 "user": user_data,
-                "refresh_token": refresh,
-                "acess_token": access,  # Unpack tokens into the response
+                "refresh_token": str(tokens),
+                "acess_token": str(tokens.access_token),  # Unpack tokens into the response
             },
             status=status.HTTP_200_OK,
         )
@@ -386,7 +386,7 @@ class ResetPasswordView(APIView):
             )
 
 
-######Update-password view
+######Update-password view***************************************************************************************************
 
 
 class UpdatePasswordView(APIView):
@@ -398,11 +398,11 @@ class UpdatePasswordView(APIView):
         new_password = request.data["new_password"]
 
         auth_header = request.META.get("HTTP_AUTHORIZATION")
-        if not auth_header:
-            raise AuthenticationFailed("the authorization header was not provided!.")
+        # if not auth_header:
+        #     raise AuthenticationFailed("the authorization header was not provided!.")
         parts = auth_header.split(" ")
-        if parts[0].lower() != "bearer":
-            raise AuthenticationFailed("Invalid authentication header. Use Bearer.")
+        # if parts[0].lower() != "bearer":
+        #     raise AuthenticationFailed("Invalid authentication header. Use Bearer.")
         token = parts[1]
         try:
             payload = decode(
@@ -432,3 +432,41 @@ class UpdatePasswordView(APIView):
             raise AuthenticationFailed("Invalid token signature.")
         except exceptions.JWTError as e:
             raise AuthenticationFailed("An error occurred while decoding the token.")
+        
+######Update user Info view***************************************************************************************************
+        
+class UpdateUserInfoView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def put(self, request):
+        auth_header = request.META.get("HTTP_AUTHORIZATION")
+        parts = auth_header.split(" ")
+        access_token = parts[1]
+
+        try:
+            payload = decode(access_token, settings.SIMPLE_JWT['SIGNING_KEY'], algorithms=[settings.SIMPLE_JWT["ALGORITHM"]])
+            email = str(payload["email"])
+            user = User.objects.filter(email=email).first()
+            print(f"the picture url {user.profilePicture.url}")
+        except exceptions.DecodeError as e:
+            raise AuthenticationFailed("Invalid token format.")
+        except exceptions.ExpiredSignatureError as e:
+            raise AuthenticationFailed("Token has expired.")
+        except exceptions.InvalidSignatureError as e:
+            raise AuthenticationFailed("Invalid token signature.")
+        except exceptions.JWTError as e:
+            raise AuthenticationFailed("An error occurred while decoding the token.")
+        
+        if user is None:
+            return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+       
+        serializer = UserSerializer(user, data=request.data, partial=True)
+        if serializer.is_valid():
+            
+            serializer.save()
+            return Response({"success": "User data updated"}, status=status.HTTP_202_ACCEPTED)
+        else:
+            return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
+        
+
+  

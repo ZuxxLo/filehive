@@ -7,8 +7,10 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.contrib.sites.shortcuts import get_current_site
 from django.urls import reverse
 from django.core.mail import send_mail
+from django.core.files.base import ContentFile
 from django.conf import settings
 import uuid
+import os
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -26,7 +28,9 @@ class UserSerializer(serializers.ModelSerializer):
             "is_verified",
             "is_superuser",
         ]
-        # extra_kwargs = {'password': {'write_only': True}}
+        extra_kwargs = {
+            'password': {'write_only': True}
+            }
 
     def create(self, validated_data):
         password = validated_data.pop("password", None)
@@ -37,23 +41,27 @@ class UserSerializer(serializers.ModelSerializer):
             instance.set_password(password)
             instance.save()
 
-        # self.send_verification_email(instance)
         return instance
 
-    # def get_verification_link(self, obj):
-    #     current_site = get_current_site(self.context['request'])
-    #     verification_url = reverse('verify-email', args=[obj.id, obj.verification_token])
-    #     return f'http://{current_site.domain}{verification_url}'
-
-    # def send_verification_email(self, user):
-    #     user.verification_token = str(uuid.uuid4())
-    #     user.save()
-
-    #     subject = 'Verify your email'
-    #     message = f'Please click the following link to verify your email: {self.get_verification_link(user)}'
-    #     from_email = settings.EMAIL_HOST_USER
-    #     recipient_list = [user.email]
-    #     send_mail(subject, message, from_email, recipient_list, fail_silently=False)
+    def update(self, instance, validated_data):
+        if 'profilePicture' in validated_data:
+            newProfilePicture = validated_data.pop('profilePicture')
+        
+            try:
+                oldProfilePicture = instance.profilePicture.path
+                
+            except ValueError:
+                oldProfilePicture = None
+            if oldProfilePicture and os.path.exists(oldProfilePicture):
+                os.remove(oldProfilePicture)
+            instance.profilePicture.save(newProfilePicture.name, ContentFile(newProfilePicture.read()), save=False)
+            
+            
+            instance.first_name = validated_data.get("first_name")
+            instance.last_name = validated_data.get("last_name")            
+        
+            instance.save()
+            return instance
 
 
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
