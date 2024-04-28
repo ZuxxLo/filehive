@@ -1,4 +1,4 @@
-#!/home/pain/Desktop/Project-2SC/back-end/code/venv/bin/python
+#!/home/pain/Desktop/Project-2SC/api/code/venv/bin/python
 # -*- coding: utf-8 -*-
 import re
 import sys

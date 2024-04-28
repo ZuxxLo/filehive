@@ -428,8 +428,8 @@ class UpdatePasswordView(APIView):
             raise AuthenticationFailed("Invalid token format.")
         except exceptions.ExpiredSignatureError as e:
             raise AuthenticationFailed("Token has expired.")
-        except exceptions.InvalidSignatureError as e:
-            raise AuthenticationFailed("Invalid token signature.")
+        # except exceptions.InvalidSignatureError as e:
+        #     raise AuthenticationFailed("Invalid token signature.")
         except exceptions.JWTError as e:
             raise AuthenticationFailed("An error occurred while decoding the token.")
         
@@ -452,10 +452,11 @@ class UpdateUserInfoView(APIView):
             raise AuthenticationFailed("Invalid token format.")
         except exceptions.ExpiredSignatureError as e:
             raise AuthenticationFailed("Token has expired.")
-        except exceptions.InvalidSignatureError as e:
-            raise AuthenticationFailed("Invalid token signature.")
+        # except exceptions.InvalidSignatureError as e:
+        #     raise AuthenticationFailed("Invalid token signature.")
         except exceptions.JWTError as e:
             raise AuthenticationFailed("An error occurred while decoding the token.")
+        
         
         if user is None:
             return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
@@ -468,5 +469,33 @@ class UpdateUserInfoView(APIView):
         else:
             return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
         
+# verify Token View*****************************************************************************
 
-  
+class VerifyTokenView(APIView):
+    authentication_classes = []
+    def get(self, request):
+        auth_header = request.META.get("HTTP_AUTHORIZATION")
+        if not auth_header:
+            raise AuthenticationFailed("No AUTHORIZATION header provided!.")
+        parts = auth_header.split(" ")
+        if parts[0].lower() != "bearer":
+            raise AuthenticationFailed("Invalid authentication header. User Bearer")
+
+        token = parts[1]
+        try:
+            payload = decode(
+                token,
+                settings.SIMPLE_JWT["SIGNING_KEY"],
+                algorithms=[settings.SIMPLE_JWT["ALGORITHM"]],
+            )
+        # except exceptions.InvalidTokenError as e:
+        #      return Response({'error': 'Invalid token'},status=status.HTTP_401_UNAUTHORIZED)
+        except exceptions.DecodeError as e:
+            return Response({"error":"Invalid Token"}, status=status.HTTP_401_UNAUTHORIZED)
+        except exceptions.ExpiredSignatureError as e:
+            return Response({"error": "Token has expired"}, status=status.HTTP_401_UNAUTHORIZED)
+        except exceptions.JWTError as e:
+            # raise AuthenticationFailed("An error occurred while decoding the token.")
+            return Response({"error":"An error occurred while decoding the token."}, status=status.HTTP_401_UNAUTHORIZED)
+
+        return Response({"message": "Token is Valid!"}, status=status.HTTP_200_OK)
