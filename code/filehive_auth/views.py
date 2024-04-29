@@ -388,7 +388,28 @@ class ResetPasswordView(APIView):
 
 ######Update-password view***************************************************************************************************
 
+class UpdatePasswordRequestSerializer(serializers.Serializer):
+    old_password = serializers.CharField()
+    new_password = serializers.CharField()
 
+@extend_schema(
+    description="the front-side will send update-password  request with an old and a new password and the front-side must send the user's access_token in the authorisation-header",
+    request=UpdatePasswordRequestSerializer,
+    responses={
+        202: OpenApiResponse(
+            response={
+                "type": "object",
+                "properties": {
+                    "message": {"type": "string"},
+                    "status": {"type": "string"},
+                 
+                },
+            }
+        ),
+        401: OpenApiResponse(description="UNAUTHIRIZED | Invalide Token | token has expired | decoding_token_error"),
+       
+    },
+)
 class UpdatePasswordView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -434,7 +455,29 @@ class UpdatePasswordView(APIView):
             raise AuthenticationFailed("An error occurred while decoding the token.")
         
 ######Update user Info view***************************************************************************************************
-        
+class UpdateUserInfoRequestSerializer(serializers.Serializer):
+    first_name = serializers.CharField()
+    last_name = serializers.CharField()
+    profilePicture = serializers.FileField(required=False)
+
+@extend_schema(
+    description="the token-verification route and the front-side must send the user's access-token in the authorisation header",
+    request=UpdateUserInfoRequestSerializer,
+    responses={
+        202: OpenApiResponse(
+            response={
+                "type": "object",
+                "properties": {
+                    "success": {"type": "string"}, 
+                },
+            }
+        ),
+        400: OpenApiResponse(description="Bad request"),
+        401: OpenApiResponse(description="UNAUTHIRIZED | Invalide Token | token has expired | decoding_token_error"),
+        404: OpenApiResponse(description="User Not Found")
+       
+    },
+)
 class UpdateUserInfoView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -447,7 +490,7 @@ class UpdateUserInfoView(APIView):
             payload = decode(access_token, settings.SIMPLE_JWT['SIGNING_KEY'], algorithms=[settings.SIMPLE_JWT["ALGORITHM"]])
             email = str(payload["email"])
             user = User.objects.filter(email=email).first()
-            print(f"the picture url {user.profilePicture.url}")
+          
         except exceptions.DecodeError as e:
             raise AuthenticationFailed("Invalid token format.")
         except exceptions.ExpiredSignatureError as e:
@@ -471,6 +514,22 @@ class UpdateUserInfoView(APIView):
         
 # verify Token View*****************************************************************************
 
+
+@extend_schema(
+    description="Update the user information route and the front-side must send the user's access-token in the authorisation header",
+    responses={
+        200: OpenApiResponse(
+            response={
+                "type": "object",
+                "properties": {
+                    "message": {"type": "string"}, 
+                },
+            }
+        ),
+        401: OpenApiResponse(description="UNAUTHIRIZED | Invalide Token | token has expired | decoding_token_error"),
+     
+    },
+)
 class VerifyTokenView(APIView):
     authentication_classes = []
     def get(self, request):
