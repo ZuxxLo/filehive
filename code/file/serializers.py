@@ -1,20 +1,10 @@
 from rest_framework import serializers
 from rest_framework.serializers import FileField
-
 from utils.response.base_response import BaseResponse
-
 from .models import File
-
 from filehive_auth.serializers import UserSerializer
-
 from filehive_auth.models import User
-from drf_spectacular.utils import (
-    extend_schema,
-    OpenApiParameter,
-    OpenApiResponse,
-    OpenApiExample,
-    extend_schema_serializer,
-)
+from drf_spectacular.utils import extend_schema_serializer
 
 
 class CustomValidationError(serializers.ValidationError):
@@ -54,6 +44,4 @@ class FileSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         # Ensure 'id' field is not provided by the user
         validated_data.pop("id", None)
-        # validated_data.pop("owner", None)
-
         return super().create(validated_data)
