@@ -3,3 +3,4 @@ code/venv
 code/winVenv
 data/
 **/migrations/*
+**/__pycache__*
