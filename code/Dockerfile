@@ -17,12 +17,14 @@ RUN pip install -r requirements.txt
 
 
 COPY . /app/
+RUN rm -rf /app/linuxVenv/ && \
+rm -rf /app/winVenv/
+
+
 
 RUN chmod +x /app/entrypoint.sh
 ENTRYPOINT [ "sh", "/app/entrypoint.sh" ]
 
-# CMD  chmod +x /app/entrypoint.sh && \
-#     /app/entrypoint.sh && 
 
 
 
