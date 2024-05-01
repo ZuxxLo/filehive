@@ -18,7 +18,7 @@ class File(models.Model):
     date_created = models.DateTimeField(auto_now_add=True)
     updated_date = models.DateTimeField(auto_now=True)
     file_type = models.CharField(max_length=30, blank=True)
-    
+
     class Meta:
         # Specify the custom collection name
         db_table = "file"

@@ -213,6 +213,7 @@ class LoginView(APIView):
             {
                 "message": "Login User Successful!",
                 "user": user_data,
+                "files": file_serializer.data,
                 "refresh_token": str(tokens),
                 "acess_token": str(
                     tokens.access_token
