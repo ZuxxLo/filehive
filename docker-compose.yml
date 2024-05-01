@@ -28,7 +28,8 @@ services:
     # command: ''
     volumes:
       - ./code:/app  
-      - /app/venv
+      # - /app/linuxVenv
+      
     ports:
       - "8000:8000"  
     depends_on:

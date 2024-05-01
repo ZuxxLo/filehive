@@ -125,6 +125,13 @@ class FileViewSet(ViewSet):
 
         serializer_data = request.data.copy()
         serializer_data["owner"] = owner_id
+        file_extension = str(serializer_data["file"]).split(".")[
+            -1
+        ]  # Extract file extension
+        print(file_extension)
+        print("*****************")
+        serializer_data["file_type"] = file_extension
+
         serializer = FileSerializer(data=serializer_data)
         if serializer.is_valid():
             try:

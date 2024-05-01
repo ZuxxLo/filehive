@@ -13,6 +13,7 @@ class File(models.Model):
     id = models.AutoField(primary_key=True)
     title = models.CharField(max_length=254)
     file = models.FileField(upload_to=f"files/%y/%m/%d/")
+    file_type = models.CharField(max_length=30)
     owner = models.ForeignKey(User, on_delete=models.CASCADE)
     download_url = models.URLField
     date_created = models.DateTimeField(auto_now_add=True)
