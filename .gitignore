@@ -1,6 +1,6 @@
 code/media
-code/venv
 code/winVenv
+code/linuxVenv
 data/
 **/migrations/*
 **/__pycache__*

@@ -10,4 +10,4 @@ from .models import File
 #     list_display_links = ('title',)
 
 
-admin.site.register(File)
+# admin.site.register(File)

@@ -12,7 +12,11 @@ class CustomValidationError(serializers.ValidationError):
     default_code = ""
 
 
-@extend_schema_serializer(exclude_fields=["owner"])
+@extend_schema_serializer(
+    exclude_fields=[
+        "owner",
+    ]
+)
 class FileSerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -21,10 +25,10 @@ class FileSerializer(serializers.ModelSerializer):
             "id",
             "title",
             "file",
+            "file_type",
             "owner",
             "date_created",
             "updated_date",
-            "file_type",
         )
 
     def to_representation(self, instance):
