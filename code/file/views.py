@@ -130,7 +130,7 @@ class FileViewSet(ViewSet):
         ]  # Extract file extension
         print(file_extension)
         print("*****************")
-        serializer_data["file_type"] = "pdf"
+        serializer_data["file_type"] = file_extension
 
         serializer = FileSerializer(data=serializer_data)
         if serializer.is_valid():

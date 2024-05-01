@@ -12,11 +12,7 @@ class CustomValidationError(serializers.ValidationError):
     default_code = ""
 
 
-@extend_schema_serializer(
-    exclude_fields=[
-        "owner",
-    ]
-)
+@extend_schema_serializer(exclude_fields=["owner", "file_type"])
 class FileSerializer(serializers.ModelSerializer):
 
     class Meta:
