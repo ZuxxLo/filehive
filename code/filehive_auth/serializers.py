@@ -56,12 +56,19 @@ class UserSerializer(serializers.ModelSerializer):
                 os.remove(oldProfilePicture)
             instance.profilePicture.save(newProfilePicture.name, ContentFile(newProfilePicture.read()), save=False)
             
-            
-            instance.first_name = validated_data.get("first_name")
-            instance.last_name = validated_data.get("last_name")            
-        
-            instance.save()
-            return instance
+        # print(f"the validated_data:  {dir(validated_data)}")
+        print(f"the validated data {validated_data.items} {validated_data.keys} {validated_data.keys}")
+        # instance.first_name = validated_data.get("first_name")
+        # instance.last_name = validated_data.get("last_name") 
+        print(f"Before update: {instance.__dict__}")
+        for attr, value in validated_data.items():
+         
+            setattr(instance, attr, value)
+       
+
+        instance.save()
+      
+        return instance
 
 
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):

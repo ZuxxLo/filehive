@@ -156,7 +156,7 @@ class LoginRequestSerializer(serializers.Serializer):
             }
         ),
         400: OpenApiResponse(description="Bad request, invalid creds"),
-        403: OpenApiResponse(description="User not verified (verification email sent)"),
+        403: OpenApiResponse(description="User not verifie  d (verification email sent)"),
         404: OpenApiResponse(description="User not found"),
     },
 )
@@ -166,14 +166,14 @@ class LoginView(APIView):
 
         email = request.data["email"]
         password = request.data["password"]
+        
         user = User.objects.filter(email=email).first()
-
         if user is None:
-            raise AuthenticationFailed("User not Found!")
+            raise AuthenticationFailed("user not found!")
         if not user.check_password(password):
-            raise AuthenticationFailed("Incorrect Password")
+            raise AuthenticationFailed("incorrect password")
         if not user.is_verified:
-            email_subject = "Verify Your Account"
+            email_subject = "verify your account"
             message = render_to_string(
                 "registration/verify.html",
                 {
@@ -499,6 +499,7 @@ class UpdateUserInfoRequestSerializer(serializers.Serializer):
         404: OpenApiResponse(description="User Not Found"),
     },
 )
+
 class UpdateUserInfoView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -506,7 +507,7 @@ class UpdateUserInfoView(APIView):
         auth_header = request.META.get("HTTP_AUTHORIZATION")
         parts = auth_header.split(" ")
         access_token = parts[1]
-
+      
         try:
             payload = decode(
                 access_token,
@@ -514,7 +515,15 @@ class UpdateUserInfoView(APIView):
                 algorithms=[settings.SIMPLE_JWT["ALGORITHM"]],
             )
             email = str(payload["email"])
+       
             user = User.objects.filter(email=email).first()
+            if user is None:
+                return Response(
+                {"error": "User not found"}, status=status.HTTP_404_NOT_FOUND
+            )
+            
+          
+          
 
         except exceptions.DecodeError as e:
             raise AuthenticationFailed("Invalid token format.")
@@ -525,11 +534,7 @@ class UpdateUserInfoView(APIView):
         except exceptions.JWTError as e:
             raise AuthenticationFailed("An error occurred while decoding the token.")
 
-        if user is None:
-            return Response(
-                {"error": "User not found"}, status=status.HTTP_404_NOT_FOUND
-            )
-
+    
         serializer = UserSerializer(user, data=request.data, partial=True)
         if serializer.is_valid():
 
@@ -537,6 +542,8 @@ class UpdateUserInfoView(APIView):
             return Response(
                 {"success": "User data updated"}, status=status.HTTP_202_ACCEPTED
             )
+            
+    
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -602,39 +609,68 @@ class GetUserView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-
-        user_id = None
-        if "HTTP_AUTHORIZATION" in request.META:
-            auth_header = request.META["HTTP_AUTHORIZATION"]
-            user_id = extract_owner_id_from_token(auth_header)
-        if not user_id:
-            return None
+        auth_header = request.META.get("HTTP_AUTHORIZATION")
+        parts = auth_header.split(" ")
+        access_token = parts[1]
 
         try:
-            user = User.objects.get(id=user_id)
-            serializer = UserSerializer(user)
+            payload = decode(
+                access_token,
+                settings.SIMPLE_JWT["SIGNING_KEY"],
+                algorithms=[settings.SIMPLE_JWT["ALGORITHM"]],
+            )
+            
+        except exceptions.DecodeError as e:
+            raise AuthenticationFailed("Invalid token format.")
+        except exceptions.ExpiredSignatureError as e:
+            raise AuthenticationFailed("Token has expired.")
+        # except exceptions.InvalidSignatureError as e:
+        #     raise AuthenticationFailed("Invalid token signature.")
+        except exceptions.JWTError as e:
+            raise AuthenticationFailed("An error occurred while decoding the token.")
+        email = str(payload["email"])
+        user = User.objects.filter(email=email).first()
+        serializer = UserSerializer(user)
+        user_data = serializer.data
+        return Response(
+            {"user": user_data},
+            status=status.HTTP_200_OK,
+        )
+    
 
-            files = File.objects.filter(owner=user)
-            file_serializer = FileSerializer(files, many=True)
-            for file_data in file_serializer.data:
-                if "owner" in file_data:
-                    del file_data["owner"]
-            return BaseResponse(
-                status_code=status.HTTP_200_OK,
-                error=False,
-                message="User informations retreived successfully",
-                data={
-                    "user": serializer.data,
-                    "files": file_serializer.data,
-                },
-            )
-        except Exception as e:
-            return BaseResponse(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                error=True,
-                message=str(e),
-                data=str(e),
-            )
+
+        # user_id = None
+        # if "HTTP_AUTHORIZATION" in request.META:
+        #     auth_header = request.META["HTTP_AUTHORIZATION"]
+        #     user_id = extract_owner_id_from_token(auth_header)
+        # if not user_id:
+        #     return None
+
+        # try:
+        #     user = User.objects.get(id=user_id)
+        #     serializer = UserSerializer(user)
+
+        #     files = File.objects.filter(owner=user)
+        #     file_serializer = FileSerializer(files, many=True)
+        #     for file_data in file_serializer.data:
+        #         if "owner" in file_data:
+        #             del file_data["owner"]
+        #     return BaseResponse(
+        #         status_code=status.HTTP_200_OK,
+        #         error=False,
+        #         message="User informations retreived successfully",
+        #         data={
+        #             "user": serializer.data,
+        #             "files": file_serializer.data,
+        #         },
+        #     )
+        # except Exception as e:
+        #     return BaseResponse(
+        #         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        #         error=True,
+        #         message=str(e),
+        #         data=str(e),
+        #     )
 
 
 def extract_owner_id_from_token(auth_header):
