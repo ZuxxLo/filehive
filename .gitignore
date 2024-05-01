@@ -2,5 +2,4 @@ code/media
 code/winVenv
 code/linuxVenv
 data/
-**/migrations/*
 **/__pycache__*
