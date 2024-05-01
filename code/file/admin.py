@@ -9,4 +9,5 @@ from .models import File
 #     list_editable = [ 'file', 'owner', 'file_type']
 #     list_display_links = ('title',)
 
+
 admin.site.register(File)
