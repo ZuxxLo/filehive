@@ -158,6 +158,7 @@ REST_FRAMEWORK = {
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "EXCEPTION_HANDLER": "utils.exception.custom_exception.custom_exception_handler",
 }
 
 SIMPLE_JWT = {
@@ -213,6 +214,7 @@ SPECTACULAR_SETTINGS = {
     "SWAGGER_UI_DIST": "SIDECAR",  # shorthand to use the sidecar instead
     "SWAGGER_UI_FAVICON_HREF": "SIDECAR",
     "REDOC_DIST": "SIDECAR",
+    "COMPONENT_SPLIT_REQUEST": True,
 }
 
 EMAIL_HOST = "smtp.gmail.com"

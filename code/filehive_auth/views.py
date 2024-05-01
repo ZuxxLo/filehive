@@ -7,6 +7,8 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework import serializers
 from rest_framework.generics import GenericAPIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
+
+from utils.response.base_response import BaseResponse
 from .models import User
 
 from .serializers import UserSerializer
@@ -21,6 +23,8 @@ from django.utils.encoding import force_bytes, force_text
 from django.core.mail import EmailMessage
 from django.conf import settings
 from jwt import decode, exceptions
+from file.models import File
+from file.serializers import FileSerializer
 
 
 class MyTokenObtainPairView(TokenObtainPairView):
@@ -199,12 +203,20 @@ class LoginView(APIView):
         # type = tokens.token_type for refresh type
         serializer = UserSerializer(user)
         user_data = serializer.data
+        files = File.objects.filter(owner=user)
+        file_serializer = FileSerializer(files, many=True)
+        for file_data in file_serializer.data:
+            if "owner" in file_data:
+                del file_data["owner"]
+
         return Response(
             {
                 "message": "Login User Successful!",
                 "user": user_data,
                 "refresh_token": str(tokens),
-                "acess_token": str(tokens.access_token),  # Unpack tokens into the response
+                "acess_token": str(
+                    tokens.access_token
+                ),  # Unpack tokens into the response
             },
             status=status.HTTP_200_OK,
         )
@@ -272,8 +284,11 @@ class VerifyReset(APIView):
         if user is not None and generate_token.check_token(user, token):
 
             return Response(
-                {"message": f"Now You can Change password", "status": "success",
-                "email": f"{user.email}"},
+                {
+                    "message": f"Now You can Change password",
+                    "status": "success",
+                    "email": f"{user.email}",
+                },
                 status=status.HTTP_200_OK,
             )
         else:
@@ -388,9 +403,11 @@ class ResetPasswordView(APIView):
 
 ######Update-password view***************************************************************************************************
 
+
 class UpdatePasswordRequestSerializer(serializers.Serializer):
     old_password = serializers.CharField()
     new_password = serializers.CharField()
+
 
 @extend_schema(
     description="the front-side will send update-password  request with an old and a new password and the front-side must send the user's access_token in the authorisation-header",
@@ -402,12 +419,12 @@ class UpdatePasswordRequestSerializer(serializers.Serializer):
                 "properties": {
                     "message": {"type": "string"},
                     "status": {"type": "string"},
-                 
                 },
             }
         ),
-        401: OpenApiResponse(description="UNAUTHIRIZED | Invalide Token | token has expired | decoding_token_error"),
-       
+        401: OpenApiResponse(
+            description="UNAUTHIRIZED | Invalide Token | token has expired | decoding_token_error"
+        ),
     },
 )
 class UpdatePasswordView(APIView):
@@ -453,12 +470,14 @@ class UpdatePasswordView(APIView):
         #     raise AuthenticationFailed("Invalid token signature.")
         except exceptions.JWTError as e:
             raise AuthenticationFailed("An error occurred while decoding the token.")
-        
+
+
 ######Update user Info view***************************************************************************************************
 class UpdateUserInfoRequestSerializer(serializers.Serializer):
     first_name = serializers.CharField()
     last_name = serializers.CharField()
     profilePicture = serializers.FileField(required=False)
+
 
 @extend_schema(
     description="the token-verification route and the front-side must send the user's access-token in the authorisation header",
@@ -468,14 +487,15 @@ class UpdateUserInfoRequestSerializer(serializers.Serializer):
             response={
                 "type": "object",
                 "properties": {
-                    "success": {"type": "string"}, 
+                    "success": {"type": "string"},
                 },
             }
         ),
         400: OpenApiResponse(description="Bad request"),
-        401: OpenApiResponse(description="UNAUTHIRIZED | Invalide Token | token has expired | decoding_token_error"),
-        404: OpenApiResponse(description="User Not Found")
-       
+        401: OpenApiResponse(
+            description="UNAUTHIRIZED | Invalide Token | token has expired | decoding_token_error"
+        ),
+        404: OpenApiResponse(description="User Not Found"),
     },
 )
 class UpdateUserInfoView(APIView):
@@ -487,10 +507,14 @@ class UpdateUserInfoView(APIView):
         access_token = parts[1]
 
         try:
-            payload = decode(access_token, settings.SIMPLE_JWT['SIGNING_KEY'], algorithms=[settings.SIMPLE_JWT["ALGORITHM"]])
+            payload = decode(
+                access_token,
+                settings.SIMPLE_JWT["SIGNING_KEY"],
+                algorithms=[settings.SIMPLE_JWT["ALGORITHM"]],
+            )
             email = str(payload["email"])
             user = User.objects.filter(email=email).first()
-          
+
         except exceptions.DecodeError as e:
             raise AuthenticationFailed("Invalid token format.")
         except exceptions.ExpiredSignatureError as e:
@@ -499,19 +523,23 @@ class UpdateUserInfoView(APIView):
         #     raise AuthenticationFailed("Invalid token signature.")
         except exceptions.JWTError as e:
             raise AuthenticationFailed("An error occurred while decoding the token.")
-        
-        
+
         if user is None:
-            return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
-       
+            return Response(
+                {"error": "User not found"}, status=status.HTTP_404_NOT_FOUND
+            )
+
         serializer = UserSerializer(user, data=request.data, partial=True)
         if serializer.is_valid():
-            
+
             serializer.save()
-            return Response({"success": "User data updated"}, status=status.HTTP_202_ACCEPTED)
+            return Response(
+                {"success": "User data updated"}, status=status.HTTP_202_ACCEPTED
+            )
         else:
-            return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
-        
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
 # verify Token View*****************************************************************************
 
 
@@ -522,16 +550,18 @@ class UpdateUserInfoView(APIView):
             response={
                 "type": "object",
                 "properties": {
-                    "message": {"type": "string"}, 
+                    "message": {"type": "string"},
                 },
             }
         ),
-        401: OpenApiResponse(description="UNAUTHIRIZED | Invalide Token | token has expired | decoding_token_error"),
-     
+        401: OpenApiResponse(
+            description="UNAUTHIRIZED | Invalide Token | token has expired | decoding_token_error"
+        ),
     },
 )
 class VerifyTokenView(APIView):
     authentication_classes = []
+
     def get(self, request):
         auth_header = request.META.get("HTTP_AUTHORIZATION")
         if not auth_header:
@@ -550,11 +580,71 @@ class VerifyTokenView(APIView):
         # except exceptions.InvalidTokenError as e:
         #      return Response({'error': 'Invalid token'},status=status.HTTP_401_UNAUTHORIZED)
         except exceptions.DecodeError as e:
-            return Response({"error":"Invalid Token"}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response(
+                {"error": "Invalid Token"}, status=status.HTTP_401_UNAUTHORIZED
+            )
         except exceptions.ExpiredSignatureError as e:
-            return Response({"error": "Token has expired"}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response(
+                {"error": "Token has expired"}, status=status.HTTP_401_UNAUTHORIZED
+            )
         except exceptions.JWTError as e:
             # raise AuthenticationFailed("An error occurred while decoding the token.")
-            return Response({"error":"An error occurred while decoding the token."}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response(
+                {"error": "An error occurred while decoding the token."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
 
         return Response({"message": "Token is Valid!"}, status=status.HTTP_200_OK)
+
+
+class GetUserView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+
+        user_id = None
+        if "HTTP_AUTHORIZATION" in request.META:
+            auth_header = request.META["HTTP_AUTHORIZATION"]
+            user_id = extract_owner_id_from_token(auth_header)
+        if not user_id:
+            return None
+
+        try:
+            user = User.objects.get(id=user_id)
+            serializer = UserSerializer(user)
+
+            files = File.objects.filter(owner=user)
+            file_serializer = FileSerializer(files, many=True)
+            for file_data in file_serializer.data:
+                if "owner" in file_data:
+                    del file_data["owner"]
+            return BaseResponse(
+                status_code=status.HTTP_200_OK,
+                error=False,
+                message="User informations retreived successfully",
+                data={
+                    "user": serializer.data,
+                    "files": file_serializer.data,
+                },
+            )
+        except Exception as e:
+            return BaseResponse(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                error=True,
+                message=str(e),
+                data=str(e),
+            )
+
+
+def extract_owner_id_from_token(auth_header):
+
+    try:
+        token = auth_header.split()[1]
+        payload = decode(
+            token,
+            settings.SIMPLE_JWT["SIGNING_KEY"],
+            algorithms=[settings.SIMPLE_JWT["ALGORITHM"]],
+        )
+        return payload.get("user_id", None)
+    except Exception as e:
+        return None
