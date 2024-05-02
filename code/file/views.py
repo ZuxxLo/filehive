@@ -1,27 +1,28 @@
-from rest_framework.response import Response
 from .models import File
 from .serializers import FileSerializer
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.viewsets import ViewSet
 from rest_framework import status
 from utils.response.base_response import BaseResponse
 from filehive_auth.models import User
 from drf_spectacular.utils import (
     extend_schema,
-    OpenApiParameter,
     OpenApiResponse,
     OpenApiExample,
-    extend_schema_field,
 )
-from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from django.conf import settings
 
-from jwt import decode, exceptions
+from jwt import decode
 
 
 class FileViewSet(ViewSet):
     permission_classes = [IsAuthenticated]
     serializer_class = FileSerializer
+
+    def get_permissions(self):
+        if self.action == "retrieve":
+            return [AllowAny()]
+        return [IsAuthenticated()]
 
     @extend_schema(
         description="Retrieve all files",
@@ -134,7 +135,6 @@ class FileViewSet(ViewSet):
         uploaded_file = request.FILES.get("file")
         file_size = convert_file_size(uploaded_file.size)
         serializer_data["file_size"] = file_size
-
 
         serializer = FileSerializer(data=serializer_data)
         if serializer.is_valid():
@@ -277,34 +277,7 @@ class FileViewSet(ViewSet):
         )
 
     @extend_schema(
-        examples=[
-            OpenApiExample(
-                name="Example",
-                value={
-                    "status_code": 200,
-                    "data": {
-                        "id": 33,
-                        "title": "string",
-                        "file": "/media/files/24/04/26/335054233_1664520923992692_9192623840678303950_n_KCYEj4l.jpg",
-                        "owner": {
-                            "id": 2,
-                            "email": "rougimohamed66@gmail.com",
-                            "password": "pbkdf2_sha256$720000$aVaxYZXDcC3UIznuUWZsDr$LtJifmAs4Er39T6imqEPRRivtp+8iu3SiTkDkWgAxcE=",
-                            "profilePicture": "/media/user_2_moh_rougi/one.png",
-                            "first_name": "moh",
-                            "last_name": "rougi",
-                            "is_active": True,
-                            "is_verified": True,
-                            "is_superuser": False,
-                        },
-                        "date_created": "2024-04-26T16:03:38.908023Z",
-                        "updated_date": "2024-04-26T16:03:38.908043Z",
-                    },
-                    "message": "File created successfully.",
-                    "error": False,
-                },
-            )
-        ],
+        examples=[OpenApiExample(name="Example", value={"title": "new title"})],
     )
     def update(self, request, pk=None):
         file_id = pk
@@ -368,12 +341,13 @@ def extract_owner_id_from_token(auth_header):
     except Exception as e:
         return None
 
+
 def convert_file_size(size_bytes):
     file_size_kb = size_bytes / 1024.0
     if file_size_kb >= 1024:
         file_size_mb = file_size_kb / 1024.0
         if file_size_mb >= 1024:
-            file_size_gb = file_size_mb /1024.0
+            file_size_gb = file_size_mb / 1024.0
             return f"{file_size_gb:.2f} GB"
         else:
             return f"{file_size_mb:.2f} MB"
