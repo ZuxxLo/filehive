@@ -131,6 +131,9 @@ class FileViewSet(ViewSet):
         print(file_extension)
         print("*****************")
         serializer_data["file_type"] = file_extension
+        uploaded_file = request.FILES.get("file")
+        serializer_data["file_size"] = uploaded_file.size
+
 
         serializer = FileSerializer(data=serializer_data)
         if serializer.is_valid():

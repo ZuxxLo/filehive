@@ -25,6 +25,7 @@ class FileSerializer(serializers.ModelSerializer):
             "owner",
             "date_created",
             "updated_date",
+            "file_size"
         )
 
     def to_representation(self, instance):
