@@ -132,7 +132,8 @@ class FileViewSet(ViewSet):
         print("*****************")
         serializer_data["file_type"] = file_extension
         uploaded_file = request.FILES.get("file")
-        serializer_data["file_size"] = uploaded_file.size
+        file_size = convert_file_size(uploaded_file.size)
+        serializer_data["file_size"] = file_size
 
 
         serializer = FileSerializer(data=serializer_data)
@@ -366,3 +367,15 @@ def extract_owner_id_from_token(auth_header):
         return payload.get("user_id", None)
     except Exception as e:
         return None
+
+def convert_file_size(size_bytes):
+    file_size_kb = size_bytes / 1024.0
+    if file_size_kb >= 1024:
+        file_size_mb = file_size_kb / 1024.0
+        if file_size_mb >= 1024:
+            file_size_gb = file_size_mb /1024.0
+            return f"{file_size_gb:.2f} GB"
+        else:
+            return f"{file_size_mb:.2f} MB"
+    else:
+        return f"{file_size_kb:.2f} Kb"
