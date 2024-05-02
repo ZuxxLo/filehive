@@ -36,4 +36,9 @@ urlpatterns = [
         FileViewSet.as_view({"put": "update"}),
         name="update",
     ),
+    path(
+        "search_by_title/",
+        FileViewSet.as_view({"get": "search_by_title"}),
+        name="search_by_title",
+    ),
 ]

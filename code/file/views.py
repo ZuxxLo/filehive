@@ -9,9 +9,9 @@ from drf_spectacular.utils import (
     extend_schema,
     OpenApiResponse,
     OpenApiExample,
+    OpenApiParameter,
 )
 from django.conf import settings
-
 from jwt import decode
 
 
@@ -20,7 +20,7 @@ class FileViewSet(ViewSet):
     serializer_class = FileSerializer
 
     def get_permissions(self):
-        if self.action == "retrieve":
+        if self.action == "retrieve" or self.action == "search_by_title":
             return [AllowAny()]
         return [IsAuthenticated()]
 
@@ -66,7 +66,13 @@ class FileViewSet(ViewSet):
     def list(self, request):
         files = File.objects.all()
         serializer = FileSerializer(files, many=True)
-
+        if not serializer.data:
+            return BaseResponse(
+                data=None,
+                status_code=status.HTTP_200_OK,
+                message="There is no files.",
+                error=False,
+            )
         return BaseResponse(
             data=serializer.data,
             status_code=status.HTTP_200_OK,
@@ -142,7 +148,7 @@ class FileViewSet(ViewSet):
                 owner = User.objects.get(id=owner_id)
             except User.DoesNotExist:
                 return BaseResponse(
-                    data="",
+                    data=None,
                     status_code=status.HTTP_400_BAD_REQUEST,
                     message="Owner does not exist.",
                     error=True,
@@ -206,7 +212,7 @@ class FileViewSet(ViewSet):
         file_id = pk
         if not file_id:
             return BaseResponse(
-                data="",
+                data=None,
                 status_code=status.HTTP_400_BAD_REQUEST,
                 message="File ID is required",
                 error=True,
@@ -217,7 +223,7 @@ class FileViewSet(ViewSet):
             file_obj = File.objects.get(pk=file_id)
         except File.DoesNotExist:
             return BaseResponse(
-                data="",
+                data=None,
                 status_code=status.HTTP_404_NOT_FOUND,
                 message="File does not exist.",
                 error=True,
@@ -253,7 +259,7 @@ class FileViewSet(ViewSet):
         file_id = pk
         if not file_id:
             return BaseResponse(
-                data="",
+                data=None,
                 status_code=status.HTTP_400_BAD_REQUEST,
                 message="File ID is required.",
                 error=True,
@@ -262,7 +268,7 @@ class FileViewSet(ViewSet):
             file_obj = File.objects.get(pk=file_id)
         except File.DoesNotExist:
             return BaseResponse(
-                data="",
+                data=None,
                 status_code=status.HTTP_404_NOT_FOUND,
                 message="File does not exist.",
                 error=True,
@@ -270,7 +276,7 @@ class FileViewSet(ViewSet):
 
         file_obj.delete()
         return BaseResponse(
-            data="",
+            data=None,
             status_code=status.HTTP_200_OK,
             message="File deleted successfully.",
             error=False,
@@ -318,7 +324,7 @@ class FileViewSet(ViewSet):
         file_id = pk
         if not file_id:
             return BaseResponse(
-                data="",
+                data=None,
                 status_code=status.HTTP_400_BAD_REQUEST,
                 message="File ID is required.",
                 error=True,
@@ -328,7 +334,7 @@ class FileViewSet(ViewSet):
             file_obj = File.objects.get(pk=file_id)
         except File.DoesNotExist:
             return BaseResponse(
-                data="",
+                data=None,
                 status_code=status.HTTP_404_NOT_FOUND,
                 message="File does not exist.",
                 error=True,
@@ -361,6 +367,83 @@ class FileViewSet(ViewSet):
             status_code=status.HTTP_400_BAD_REQUEST,
             message=serializer.errors,
             error=True,
+        )
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                name="title",
+                type=str,
+                description="The title to search for.",
+                required=True,
+                location=OpenApiParameter.QUERY,
+            ),
+        ],
+        responses={
+            200: OpenApiResponse(
+                examples=[
+                    OpenApiExample(
+                        name="Example",
+                        value={
+                            "status_code": 200,
+                            "data": [
+                                {
+                                    "id": 6,
+                                    "title": "damn",
+                                    "file": "/media/files/24/05/02/275233959_2209157642570814_1372322643266469283_n_NYSKY8Z.jpg",
+                                    "file_type": "jpg",
+                                    "owner": {
+                                        "id": 2,
+                                        "email": "rougimohamed66@gmail.com",
+                                        "profilePicture": "/media/user_2_moh_rougi/one.png",
+                                        "first_name": "moh",
+                                        "last_name": "rougi",
+                                        "is_active": True,
+                                        "is_verified": True,
+                                        "is_superuser": False,
+                                    },
+                                    "date_created": "2024-05-02T10:07:18.617729Z",
+                                    "updated_date": "2024-05-02T10:35:01.895082Z",
+                                    "file_size": "187.77 Kb",
+                                }
+                            ],
+                            "message": "Files found successfully.",
+                            "error": False,
+                        },
+                    ),
+                ],
+                response={
+                    "": "",
+                },
+            ),
+        },
+    )
+    def search_by_title(self, request):
+        title = request.query_params.get("title", None)
+        if not title:
+            return BaseResponse(
+                data=None,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                message="Title parameter is required for search.",
+                error=True,
+            )
+
+        files = File.objects.filter(title__icontains=title)
+        serializer = FileSerializer(files, many=True)
+
+        if not serializer.data:
+            return BaseResponse(
+                data=None,
+                status_code=status.HTTP_200_OK,
+                message="No results found.",
+                error=False,
+            )
+
+        return BaseResponse(
+            data=serializer.data,
+            status_code=status.HTTP_200_OK,
+            message="Here are some results for your search.",
+            error=False,
         )
 
 
