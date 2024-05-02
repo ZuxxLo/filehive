@@ -44,7 +44,9 @@ class UserSerializer(serializers.ModelSerializer):
         return instance
 
     def update(self, instance, validated_data):
-        if 'profilePicture' in validated_data:
+        
+        #  i am getting the data correct
+        if 'profilePicture' in validated_data.keys():
             newProfilePicture = validated_data.pop('profilePicture')
         
             try:
@@ -59,8 +61,8 @@ class UserSerializer(serializers.ModelSerializer):
         
         instance.first_name = validated_data.get("first_name", instance.first_name)
         instance.last_name = validated_data.get("last_name", instance.last_name)
-        instance.save()
-      
+        
+        instance.save()     
         return instance
 
 

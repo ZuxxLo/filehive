@@ -504,6 +504,7 @@ class UpdateUserInfoView(APIView):
     permission_classes = [IsAuthenticated]
 
     def put(self, request):
+    
         auth_header = request.META.get("HTTP_AUTHORIZATION")
         parts = auth_header.split(" ")
         access_token = parts[1]
@@ -521,7 +522,7 @@ class UpdateUserInfoView(APIView):
                 return Response(
                 {"error": "User not found"}, status=status.HTTP_404_NOT_FOUND
             )
-            
+
           
           
 
@@ -535,12 +536,12 @@ class UpdateUserInfoView(APIView):
             raise AuthenticationFailed("An error occurred while decoding the token.")
 
     
-        serializer = UserSerializer(user, data=request.data, partial=True)
+        serializer = UserSerializer(instance=user, data=request.data, partial=True)
         if serializer.is_valid():
 
             serializer.save()
             return Response(
-                {"success": "User data updated"}, status=status.HTTP_202_ACCEPTED
+                {"success": "User data updated"}, status=status.HTTP_200_OK
             )
             
     
