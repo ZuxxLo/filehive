@@ -12,7 +12,7 @@ class CustomValidationError(serializers.ValidationError):
     default_code = ""
 
 
-@extend_schema_serializer(exclude_fields=["owner", "file_type"])
+@extend_schema_serializer(exclude_fields=["owner", "file_type", "file_size"])
 class FileSerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -25,7 +25,7 @@ class FileSerializer(serializers.ModelSerializer):
             "owner",
             "date_created",
             "updated_date",
-            "file_size"
+            "file_size",
         )
 
     def to_representation(self, instance):
@@ -46,6 +46,7 @@ class FileSerializer(serializers.ModelSerializer):
             raise CustomValidationError({"title": "Title field is required."})
         # Remove owner field from validated data
         validated_data.pop("owner", None)
+        validated_data.pop("file_size", None)
 
         return super().update(instance, validated_data)
 
