@@ -9,33 +9,8 @@ router = routers.DefaultRouter()
 router.register("", FileViewSet, basename="")
 # ...
 
+
 urlpatterns = [
-    # ...
-    path("", include(router.urls)),
-]
-# urlpatterns = [
-#     path('dq/',  FileViewSet.as_view(), name='dq'),
-
-#     # path('d/', views.tttt, name='home'),
-#     # path('task/', views.tutorial_list, name='tasdqsk'),
-
-#     # path('task/', views.tutorial_list, name='task'),
-#     # path('add/', views.ttt, name='ttt'),
-
-# ]
-urlpatterns = [
-    # #only to test in documentation
-    # path(
-    #     '',
-    #     FileViewSet.as_view({'get': 'list', 'post': 'create'}),
-    #     name='',
-    # ),
-    # path(
-    #     'id/<str:pk>/',
-    #     FileViewSet.as_view({'get': 'retrieve','put': 'update', 'delete': 'destroy'}),#,
-    #     name='file_detail',
-    # ),
-    # actual working urls
     path(
         "create/",
         FileViewSet.as_view({"post": "create"}),
