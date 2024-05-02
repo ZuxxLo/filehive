@@ -278,6 +278,41 @@ class FileViewSet(ViewSet):
 
     @extend_schema(
         examples=[OpenApiExample(name="Example", value={"title": "new title"})],
+        responses={
+            200: OpenApiResponse(
+                examples=[
+                    OpenApiExample(
+                        name="Example",
+                        value={
+                            "status_code": 200,
+                            "data": {
+                                "title": "file 3",
+                                "file": "/media/files/24/04/23/SE2-TD5.pdf",
+                                "file_type": "pdf",
+                                "owner": {
+                                    "id": 2,
+                                    "email": "rougimohamed66@gmail.com",
+                                    "profilePicture": "/media/user_2_moh_rougi/one.png",
+                                    "first_name": "moh",
+                                    "last_name": "rougi",
+                                    "is_active": True,
+                                    "is_verified": True,
+                                    "is_superuser": False,
+                                },
+                                "date_created": "2024-04-23T09:24:02.606000Z",
+                                "updated_date": "2024-05-02T10:56:05.059703Z",
+                                "file_size": "1kb",
+                            },
+                            "message": "File updated successfully.",
+                            "error": False,
+                        },
+                    ),
+                ],
+                response={
+                    "": "",
+                },
+            ),
+        },
     )
     def update(self, request, pk=None):
         file_id = pk
