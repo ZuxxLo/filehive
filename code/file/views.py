@@ -70,7 +70,7 @@ class FileViewSet(ViewSet):
         serializer = FileSerializer(files, many=True)
         if not serializer.data:
             return BaseResponse(
-                data=None,
+                data=[],
                 status_code=status.HTTP_200_OK,
                 message="There is no files.",
                 error=False,
@@ -447,6 +447,3 @@ class FileViewSet(ViewSet):
             message="Here are some results for your search.",
             error=False,
         )
-
-
-
