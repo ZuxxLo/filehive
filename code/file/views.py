@@ -292,6 +292,18 @@ class FileViewSet(ViewSet):
         ],
     )
     def destroy(self, request, pk=None):
+        user_id = None
+        if "HTTP_AUTHORIZATION" in request.META:
+            auth_header = request.META["HTTP_AUTHORIZATION"]
+            user_id = extract_owner_id_from_token(auth_header)
+        if not user_id:
+            return BaseResponse(
+                data=None,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                message="Token is invalid",
+                error=True,
+            )
+
         file_id = pk
         if not file_id:
             return BaseResponse(
@@ -307,6 +319,13 @@ class FileViewSet(ViewSet):
                 data=None,
                 status_code=status.HTTP_404_NOT_FOUND,
                 message="File does not exist.",
+                error=True,
+            )
+        if file_obj.owner != user_id:
+            return BaseResponse(
+                data=None,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                message="Not the owner of the file",
                 error=True,
             )
 
@@ -357,6 +376,18 @@ class FileViewSet(ViewSet):
         },
     )
     def update(self, request, pk=None):
+        user_id = None
+        if "HTTP_AUTHORIZATION" in request.META:
+            auth_header = request.META["HTTP_AUTHORIZATION"]
+            user_id = extract_owner_id_from_token(auth_header)
+        if not user_id:
+            return BaseResponse(
+                data=None,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                message="Token is invalid",
+                error=True,
+            )
+
         file_id = pk
         if not file_id:
             return BaseResponse(
@@ -373,6 +404,14 @@ class FileViewSet(ViewSet):
                 data=None,
                 status_code=status.HTTP_404_NOT_FOUND,
                 message="File does not exist.",
+                error=True,
+            )
+        # Not completed
+        if file_obj.owner != user_id:
+            return BaseResponse(
+                data=None,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                message="Not the owner of the file",
                 error=True,
             )
 
