@@ -66,21 +66,55 @@ class FileViewSet(ViewSet):
         ],
     )
     def list(self, request):
-        files = File.objects.all()
-        serializer = FileSerializer(files, many=True)
-        if not serializer.data:
+
+        user_id = None
+        if "HTTP_AUTHORIZATION" in request.META:
+            auth_header = request.META["HTTP_AUTHORIZATION"]
+            user_id = extract_owner_id_from_token(auth_header)
+        if not user_id:
             return BaseResponse(
-                data=[],
-                status_code=status.HTTP_200_OK,
-                message="There is no files.",
-                error=False,
+                data=None,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                message="Token is invalid",
+                error=True,
             )
-        return BaseResponse(
-            data=serializer.data,
-            status_code=status.HTTP_200_OK,
-            message="All files retrieved successfully.",
-            error=False,
-        )
+
+        try:
+            user = User.objects.get(id=user_id)
+            files = File.objects.filter(owner=user)
+            file_serializer = FileSerializer(files, many=True)
+            for file_data in file_serializer.data:
+                if "owner" in file_data:
+                    del file_data["owner"]
+            return BaseResponse(
+                status_code=status.HTTP_200_OK,
+                error=False,
+                message="Files retreived successfully",
+                data=file_serializer.data,
+            )
+        except Exception as e:
+            return BaseResponse(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                error=True,
+                message=str(e),
+                data=str(e),
+            )
+
+        # files = File.objects.all()
+        # serializer = FileSerializer(files, many=True)
+        # if not serializer.data:
+        #     return BaseResponse(
+        #         data=[],
+        #         status_code=status.HTTP_200_OK,
+        #         message="There is no files.",
+        #         error=False,
+        #     )
+        # return BaseResponse(
+        #     data=serializer.data,
+        #     status_code=status.HTTP_200_OK,
+        #     message="All files retrieved successfully.",
+        #     error=False,
+        # )
 
     @extend_schema(
         request={"multipart/form-data": FileSerializer},

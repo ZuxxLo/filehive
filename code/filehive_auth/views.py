@@ -156,7 +156,9 @@ class LoginRequestSerializer(serializers.Serializer):
             }
         ),
         400: OpenApiResponse(description="Bad request, invalid creds"),
-        403: OpenApiResponse(description="User not verifie  d (verification email sent)"),
+        403: OpenApiResponse(
+            description="User not verifie  d (verification email sent)"
+        ),
         404: OpenApiResponse(description="User not found"),
     },
 )
@@ -166,7 +168,7 @@ class LoginView(APIView):
 
         email = request.data["email"]
         password = request.data["password"]
-        
+
         user = User.objects.filter(email=email).first()
         if user is None:
             raise AuthenticationFailed("user not found!")
@@ -203,17 +205,17 @@ class LoginView(APIView):
         # type = tokens.token_type for refresh type
         serializer = UserSerializer(user)
         user_data = serializer.data
-        files = File.objects.filter(owner=user)
-        file_serializer = FileSerializer(files, many=True)
-        for file_data in file_serializer.data:
-            if "owner" in file_data:
-                del file_data["owner"]
+        # files = File.objects.filter(owner=user)
+        # file_serializer = FileSerializer(files, many=True)
+        # for file_data in file_serializer.data:
+        #     if "owner" in file_data:
+        #         del file_data["owner"]
 
         return Response(
             {
                 "message": "Login User Successful!",
                 "user": user_data,
-                "files": file_serializer.data,
+                # "files": file_serializer.data,
                 "refresh_token": str(tokens),
                 "acess_token": str(
                     tokens.access_token
@@ -499,16 +501,15 @@ class UpdateUserInfoRequestSerializer(serializers.Serializer):
         404: OpenApiResponse(description="User Not Found"),
     },
 )
-
 class UpdateUserInfoView(APIView):
     permission_classes = [IsAuthenticated]
 
     def put(self, request):
-    
+
         auth_header = request.META.get("HTTP_AUTHORIZATION")
         parts = auth_header.split(" ")
         access_token = parts[1]
-      
+
         try:
             payload = decode(
                 access_token,
@@ -516,15 +517,12 @@ class UpdateUserInfoView(APIView):
                 algorithms=[settings.SIMPLE_JWT["ALGORITHM"]],
             )
             email = str(payload["email"])
-       
+
             user = User.objects.filter(email=email).first()
             if user is None:
                 return Response(
-                {"error": "User not found"}, status=status.HTTP_404_NOT_FOUND
-            )
-
-          
-          
+                    {"error": "User not found"}, status=status.HTTP_404_NOT_FOUND
+                )
 
         except exceptions.DecodeError as e:
             raise AuthenticationFailed("Invalid token format.")
@@ -535,16 +533,12 @@ class UpdateUserInfoView(APIView):
         except exceptions.JWTError as e:
             raise AuthenticationFailed("An error occurred while decoding the token.")
 
-    
         serializer = UserSerializer(instance=user, data=request.data, partial=True)
         if serializer.is_valid():
 
             serializer.save()
-            return Response(
-                {"success": "User data updated"}, status=status.HTTP_200_OK
-            )
-            
-    
+            return Response({"success": "User data updated"}, status=status.HTTP_200_OK)
+
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -620,7 +614,7 @@ class GetUserView(APIView):
                 settings.SIMPLE_JWT["SIGNING_KEY"],
                 algorithms=[settings.SIMPLE_JWT["ALGORITHM"]],
             )
-            
+
         except exceptions.DecodeError as e:
             raise AuthenticationFailed("Invalid token format.")
         except exceptions.ExpiredSignatureError as e:
@@ -637,8 +631,6 @@ class GetUserView(APIView):
             {"user": user_data},
             status=status.HTTP_200_OK,
         )
-    
-
 
         # user_id = None
         # if "HTTP_AUTHORIZATION" in request.META:
