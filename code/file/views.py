@@ -47,7 +47,6 @@ class FileViewSet(ViewSet):
                             "owner": {
                                 "id": 2,
                                 "email": "rougimohamed66@gmail.com",
-                                "password": "pbkdf2_sha256$720000$aVaxYZXDcC3UIznuUWZsDr$LtJifmAs4Er39T6imqEPRRivtp+8iu3SiTkDkWgAxcE=",
                                 "profilePicture": "/media/user_2_moh_rougi/one.png",
                                 "first_name": "moh",
                                 "last_name": "rougi",
@@ -136,7 +135,7 @@ class FileViewSet(ViewSet):
                         "owner": {
                             "id": 2,
                             "email": "rougimohamed66@gmail.com",
-                            "password": "pbkdf2_sha256$720000$aVaxYZXDcC3UIznuUWZsDr$LtJifmAs4Er39T6imqEPRRivtp+8iu3SiTkDkWgAxcE=",
+
                             "profilePicture": "/media/user_2_moh_rougi/one.png",
                             "first_name": "moh",
                             "last_name": "rougi",
@@ -227,7 +226,6 @@ class FileViewSet(ViewSet):
                         "owner": {
                             "id": 2,
                             "email": "rougimohamed66@gmail.com",
-                            "password": "pbkdf2_sha256$720000$aVaxYZXDcC3UIznuUWZsDr$LtJifmAs4Er39T6imqEPRRivtp+8iu3SiTkDkWgAxcE=",
                             "profilePicture": "/media/user_2_moh_rougi/one.png",
                             "first_name": "moh",
                             "last_name": "rougi",

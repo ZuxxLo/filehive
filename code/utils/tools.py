@@ -9,9 +9,9 @@ def convert_file_size(size_bytes):
         file_size_mb = file_size_kb / 1024.0
         if file_size_mb >= 1024:
             file_size_gb = file_size_mb / 1024.0
-            return f"{file_size_gb:.2f} GB"
+            return f"{file_size_gb:.2f} Gb"
         else:
-            return f"{file_size_mb:.2f} MB"
+            return f"{file_size_mb:.2f} Mb"
     else:
         return f"{file_size_kb:.2f} Kb"
 
