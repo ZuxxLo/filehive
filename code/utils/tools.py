@@ -4,6 +4,8 @@ from django.conf import settings
 
 
 def convert_file_size(size_bytes):
+    if size_bytes < 1024:
+        return f"{size_bytes}"
     file_size_kb = size_bytes / 1024.0
     if file_size_kb >= 1024:
         file_size_mb = file_size_kb / 1024.0
