@@ -135,7 +135,6 @@ class FileViewSet(ViewSet):
                         "owner": {
                             "id": 2,
                             "email": "rougimohamed66@gmail.com",
-
                             "profilePicture": "/media/user_2_moh_rougi/one.png",
                             "first_name": "moh",
                             "last_name": "rougi",
@@ -319,7 +318,7 @@ class FileViewSet(ViewSet):
                 message="File does not exist.",
                 error=True,
             )
-        if file_obj.owner != user_id:
+        if file_obj.owner.id != user_id:
             return BaseResponse(
                 data=None,
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -405,7 +404,9 @@ class FileViewSet(ViewSet):
                 error=True,
             )
         # Not completed
-        if file_obj.owner != user_id:
+
+        print("***********")
+        if file_obj.owner.id != user_id:
             return BaseResponse(
                 data=None,
                 status_code=status.HTTP_400_BAD_REQUEST,
