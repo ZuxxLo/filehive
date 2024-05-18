@@ -1,5 +1,6 @@
 from jwt import *
 from django.conf import settings
+import magic
 
 
 
@@ -31,3 +32,34 @@ def extract_owner_id_from_token(auth_header):
     except Exception as e:
         return None
 
+def validate_file_type(file, ext):
+    allowed_types = ["rar", "zip", "png", "jpg", "jpeg", "svg", "pdf", "pe32", "pe32+"]
+    #pe32+ is for 64bit exe    
+    file_magic = magic.Magic()
+    file_info = file_magic.from_buffer(file.read())
+    file_type = file_info.split()[0].lower()
+    if file_type not in allowed_types:
+            return False
+    if ext in allowed_types:
+        if ext == "jpg":
+            if file_type == "jpeg":
+                return True
+            else:
+                return False
+        
+        if ext == "exe":
+            if file_type == "pe32" or file_type == "pe32+":
+                return True
+            else: 
+                return False
+        if file_type == ext:
+            return True
+    else:
+        if file_type == "pe32" or file_type == "pe32+":
+            return "exe"
+        if file_type == "jpeg":
+            return "jpg"
+        return file_type
+
+
+    

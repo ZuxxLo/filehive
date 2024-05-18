@@ -1,4 +1,4 @@
-from utils.tools import extract_owner_id_from_token, convert_file_size
+from utils.tools import extract_owner_id_from_token, convert_file_size, validate_file_type
 from .models import File
 from .serializers import FileSerializer
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -164,15 +164,28 @@ class FileViewSet(ViewSet):
                 error=True,
             )
 
-        serializer_data = request.data.copy()
+        # serializer_data = request.data.copy()
+        serializer_data = request.data
+
         serializer_data["owner"] = owner_id
-        file_extension = str(serializer_data["file"]).split(".")[
-            -1
-        ]  # Extract file extension
-        print(file_extension)
-        print("*****************")
-        serializer_data["file_type"] = file_extension
+        file_extension = str(serializer_data["file"]).split(".")[-1]  # Extract file extension
+
+        # print(file_extension)
+        # print("*****************")
         uploaded_file = request.FILES.get("file")
+        result = validate_file_type(file=uploaded_file, ext=file_extension)
+        if result == False:
+            return BaseResponse(
+                data="",
+                status_code=status.HTTP_400_BAD_REQUEST,
+                message="File type is Not Allowed",
+                error=True,
+            )
+        elif result == True:
+            serializer_data["file_type"] = file_extension
+        else:
+            serializer_data["file_type"] = result
+        # still the Ai-models implemenation here (before creating the file in the db)
         file_size = convert_file_size(uploaded_file.size)
         serializer_data["file_size"] = file_size
 
