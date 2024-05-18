@@ -27,12 +27,12 @@ urlpatterns = [
         name="retrieve",
     ),
     path(
-        "destroy/<str:pk>",
+        "destroy/<str:pk>/",
         FileViewSet.as_view({"delete": "destroy"}),
         name="destroy",
     ),
     path(
-        "update/<str:pk>",
+        "update/<str:pk>/",
         FileViewSet.as_view({"put": "update"}),
         name="update",
     ),
