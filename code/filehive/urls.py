@@ -46,7 +46,7 @@ urlpatterns = [
     path("api/file/", include("file.urls")),
 ]
 
-# if settings.DEBUG:
-urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
-handler404 = "filehive_auth.views.error_404_view"
+# handler404 = "filehive_auth.views.error_404_view"

@@ -121,7 +121,8 @@ class FileViewSet(ViewSet):
             201: OpenApiResponse(
                 description="All files retrieved successfully.",
                 response=FileSerializer(many=True),
-            )
+            ),
+            406: OpenApiResponse(description="File type is Not Allowed"),
         },
         examples=[
             OpenApiExample(
@@ -177,7 +178,7 @@ class FileViewSet(ViewSet):
         if result == False:
             return BaseResponse(
                 data="",
-                status_code=status.HTTP_400_BAD_REQUEST,
+                status_code=status.HTTP_406_NOT_ACCEPTABLE,
                 message="File type is Not Allowed",
                 error=True,
             )
