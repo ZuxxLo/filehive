@@ -22,6 +22,7 @@ from .utils import TokenGenerator, generate_token
 from django.utils.encoding import force_bytes, force_text
 from django.core.mail import EmailMessage
 from django.conf import settings
+from django.shortcuts import render
 from jwt import decode, exceptions
 from file.models import File
 from file.serializers import FileSerializer
@@ -678,3 +679,9 @@ def extract_owner_id_from_token(auth_header):
         return payload.get("user_id", None)
     except Exception as e:
         return None
+
+
+#  404 not found error view Handler************************************************************
+
+def error_404_view(request, exception):
+    return render(request, 'custom_404.html', status=404)
