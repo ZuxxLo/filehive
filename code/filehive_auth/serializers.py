@@ -44,24 +44,34 @@ class UserSerializer(serializers.ModelSerializer):
         return instance
 
     def update(self, instance, validated_data):
-        if 'profilePicture' in validated_data:
+        
+        if 'profilePicture' in validated_data.keys():
             newProfilePicture = validated_data.pop('profilePicture')
         
             try:
-                oldProfilePicture = instance.profilePicture.path
+                oldProfilePicturePath = instance.profilePicture.path
                 
             except ValueError:
-                oldProfilePicture = None
-            if oldProfilePicture and os.path.exists(oldProfilePicture):
-                os.remove(oldProfilePicture)
+                oldProfilePicturePath = None
+
+            if oldProfilePicturePath is not None:
+                userProfilePictureFolder = os.path.dirname(oldProfilePicturePath)
+                files = os.listdir(userProfilePictureFolder)
+                for file in files:
+                    file_path = os.path.join(userProfilePictureFolder, file)
+                    if os.path.isfile(file_path):
+                        os.remove(file_path)
+            # if oldProfilePicture and os.path.exists(oldProfilePicture):
+            #     os.remove(oldProfilePicture)
+            
             instance.profilePicture.save(newProfilePicture.name, ContentFile(newProfilePicture.read()), save=False)
-            
-            
-            instance.first_name = validated_data.get("first_name")
-            instance.last_name = validated_data.get("last_name")            
         
-            instance.save()
-            return instance
+        instance.first_name = validated_data.get("first_name", instance.first_name)
+        instance.last_name = validated_data.get("last_name", instance.last_name)
+        
+        instance.save()     
+        return instance
+
 
 
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):

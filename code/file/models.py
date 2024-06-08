@@ -18,7 +18,7 @@ class File(models.Model):
     download_url = models.URLField
     date_created = models.DateTimeField(auto_now_add=True)
     updated_date = models.DateTimeField(auto_now=True)
-
+    file_size = models.CharField(max_length=30, default="1kb")
     class Meta:
         # Specify the custom collection name
         db_table = "file"

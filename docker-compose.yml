@@ -22,10 +22,12 @@ services:
       start_interval: 2s
 
   django:
-    build: ./code/
+    build: 
+      context: ./code/
     # command: python manage.py runserver 0.0.0.0:8000 
     # entrypoint: /app/entrypoint.sh
     # command: ''
+    
     volumes:
       - ./code:/app  
       # - /app/linuxVenv
@@ -35,4 +37,6 @@ services:
     depends_on:
       db:
         condition: service_healthy
-
+    restart: on-failure
+    
+    
