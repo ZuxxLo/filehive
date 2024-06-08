@@ -26,6 +26,7 @@ from django.shortcuts import render
 from jwt import decode, exceptions
 from file.models import File
 from file.serializers import FileSerializer
+from mlmodels.sqlinjection_model.sqlinjection_model import predict
 
 
 class MyTokenObtainPairView(TokenObtainPairView):
@@ -59,6 +60,14 @@ class RegisterRequestSerializer(serializers.Serializer):
 class RegisterView(APIView):
 
     def post(self, request):
+        predict_result = predict(self, request)
+        if predict_result["sql_injection"] == True:
+            return BaseResponse(
+                data=None,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                message=predict_result["message"],
+                error=predict_result["sql_injection"],
+            )
         serializer = UserSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
@@ -166,7 +175,14 @@ class LoginRequestSerializer(serializers.Serializer):
 class LoginView(APIView):
 
     def post(self, request):
-
+        predict_result = predict(self, request)
+        if predict_result["sql_injection"] == True:
+            return BaseResponse(
+                data=None,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                message=predict_result["message"],
+                error=predict_result["sql_injection"],
+            )
         email = request.data["email"]
         password = request.data["password"]
 
@@ -245,6 +261,14 @@ class SendResetEmailRequestSerializer(serializers.Serializer):
 )
 class SendResetEmail(APIView):
     def post(self, request):
+        predict_result = predict(self, request)
+        if predict_result["sql_injection"] == True:
+            return BaseResponse(
+                data=None,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                message=predict_result["message"],
+                error=predict_result["sql_injection"],
+            )
         email = request.data["email"]
         user = User.objects.filter(email=email).first()
         if user is None:
@@ -280,6 +304,7 @@ class SendResetEmail(APIView):
 )
 class VerifyReset(APIView):
     def post(self, request, uidb64, token):
+
         try:
             uid = force_text(urlsafe_base64_decode(uidb64))
             user = User.objects.get(pk=uid)
@@ -357,6 +382,14 @@ class ResetPasswordRequestSerializer(serializers.Serializer):
 )
 class ResetPasswordView(APIView):
     def post(self, request):
+        predict_result = predict(self, request)
+        if predict_result["sql_injection"] == True:
+            return BaseResponse(
+                data=None,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                message=predict_result["message"],
+                error=predict_result["sql_injection"],
+            )
         email = request.data["email"]
         newPassword = request.data["password"]
         user = User.objects.filter(email=email).first()
@@ -435,6 +468,14 @@ class UpdatePasswordView(APIView):
     permission_classes = [IsAuthenticated]
 
     def put(self, request):
+        predict_result = predict(self, request)
+        if predict_result["sql_injection"] == True:
+            return BaseResponse(
+                data=None,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                message=predict_result["message"],
+                error=predict_result["sql_injection"],
+            )
 
         old_password = request.data["old_password"]
         new_password = request.data["new_password"]
@@ -506,7 +547,14 @@ class UpdateUserInfoView(APIView):
     permission_classes = [IsAuthenticated]
 
     def put(self, request):
-
+        predict_result = predict(self, request)
+        if predict_result["sql_injection"] == True:
+            return BaseResponse(
+                data=None,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                message=predict_result["message"],
+                error=predict_result["sql_injection"],
+            )
         auth_header = request.META.get("HTTP_AUTHORIZATION")
         parts = auth_header.split(" ")
         access_token = parts[1]
@@ -683,5 +731,6 @@ def extract_owner_id_from_token(auth_header):
 
 #  404 not found error view Handler************************************************************
 
+
 def error_404_view(request, exception):
-    return render(request, 'custom_404.html', status=404)
+    return render(request, "custom_404.html", status=404)

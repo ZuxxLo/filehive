@@ -11,6 +11,11 @@ router.register("", FileViewSet, basename="")
 
 
 urlpatterns = [
+    # path(
+    #     "predict/",
+    #     FileViewSet.as_view({"post": "predict"}),
+    #     name="predict",
+    # ),
     path(
         "create/",
         FileViewSet.as_view({"post": "create"}),
@@ -37,7 +42,17 @@ urlpatterns = [
         name="update",
     ),
     path(
-        "search_by_title/",
+        "v1/search_by_title/",
+        FileViewSet.as_view({"post": "search_by_title_injectable"}),
+        name="search_by_title_injectable",
+    ),
+    path(
+        "v2/search_by_title/",
+        FileViewSet.as_view({"post": "search_by_title_injectable_detected"}),
+        name="search_by_title_injectable_detected",
+    ),
+    path(
+        "v3/search_by_title/",
         FileViewSet.as_view({"get": "search_by_title"}),
         name="search_by_title",
     ),

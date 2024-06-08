@@ -38,3 +38,7 @@ sqlparse==0.4.4
 tzdata==2024.1
 uritemplate==4.1.1
 urllib3==2.2.1
+joblib==1.2.0
+scikit-learn==1.2.2
+keras==2.8.0
+tensorflow==2.15.0 
