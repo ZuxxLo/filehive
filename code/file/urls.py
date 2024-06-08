@@ -47,7 +47,7 @@ urlpatterns = [
         name="search_by_title_injectable",
     ),
     path(
-        "v2/search_by_title_injectable_detected/",
+        "v2/search_by_title/",
         FileViewSet.as_view({"post": "search_by_title_injectable_detected"}),
         name="search_by_title_injectable_detected",
     ),

@@ -503,7 +503,7 @@ class FileViewSet(ViewSet):
             OpenApiParameter(
                 name="title",
                 type=str,
-                description="The title to search for.",
+                description="This route is safe from sqli, as it is implemented with django querysets which are protected",
                 required=True,
                 location=OpenApiParameter.QUERY,
             ),
@@ -582,7 +582,7 @@ class FileViewSet(ViewSet):
             )
         ],
         responses=None,
-        description="Search by title",
+        description="This route is injectable with sqli, running the code in the example will clear the files database",
     )
     def search_by_title_injectable(self, request):
         #  "title": "string';DELETE FROM file; --"
@@ -608,7 +608,7 @@ class FileViewSet(ViewSet):
             )
         ],
         responses=None,
-        description="Search by title",
+        description="This route is not injectable with sqli, running the code in the example will be detected, and the databse will be safe",
     )
     def search_by_title_injectable_detected(self, request):
         #  "title": "string';DELETE FROM file; --"
