@@ -46,6 +46,7 @@ class FileViewSet(ViewSet):
             or self.action == "search_by_title"
             or self.action == "predict"
             or self.action == "search_by_title_injectable"
+            or self.action == "search_by_title_injectable_detected"
         ):
             return [AllowAny()]
         return [IsAuthenticated()]
