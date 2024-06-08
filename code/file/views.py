@@ -1,4 +1,10 @@
-from utils.tools import extract_owner_id_from_token, convert_file_size, validate_file_type
+from utils.tools import (
+    extract_owner_id_from_token,
+    convert_file_size,
+    validate_file_type,
+)
+
+import numpy as np
 from .models import File
 from .serializers import FileSerializer
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -12,9 +18,22 @@ from drf_spectacular.utils import (
     OpenApiExample,
     OpenApiParameter,
 )
-
+from mlmodels.sqlinjection_model.sqlinjection_model import predict
 from django.conf import settings
 from jwt import decode
+
+from django.http import JsonResponse
+
+
+def convert_ndarray_to_list(data):
+    if isinstance(data, np.ndarray):
+        return data.tolist()
+    elif isinstance(data, dict):
+        return {key: convert_ndarray_to_list(value) for key, value in data.items()}
+    elif isinstance(data, list):
+        return [convert_ndarray_to_list(item) for item in data]
+    else:
+        return data
 
 
 class FileViewSet(ViewSet):
@@ -22,7 +41,12 @@ class FileViewSet(ViewSet):
     serializer_class = FileSerializer
 
     def get_permissions(self):
-        if self.action == "retrieve" or self.action == "search_by_title":
+        if (
+            self.action == "retrieve"
+            or self.action == "search_by_title"
+            or self.action == "predict"
+            or self.action == "search_by_title_injectable"
+        ):
             return [AllowAny()]
         return [IsAuthenticated()]
 
@@ -169,10 +193,9 @@ class FileViewSet(ViewSet):
         serializer_data = request.data
 
         serializer_data["owner"] = owner_id
-        file_extension = str(serializer_data["file"]).split(".")[-1]  # Extract file extension
-
-        # print(file_extension)
-        # print("*****************")
+        file_extension = str(serializer_data["file"]).split(".")[
+            -1
+        ]  # Extract file extension
         uploaded_file = request.FILES.get("file")
         result = validate_file_type(file=uploaded_file, ext=file_extension)
         if result == False:
@@ -186,7 +209,17 @@ class FileViewSet(ViewSet):
             serializer_data["file_type"] = file_extension
         else:
             serializer_data["file_type"] = result
-        # still the Ai-models implemenation here (before creating the file in the db)
+        # still the Ai-models implemenation here (before creating the file in the db)  55555
+        predict_result = predict(self, request)
+
+        if predict_result["sql_injection"] == True:
+            return BaseResponse(
+                data=None,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                message=predict_result["message"],
+                error=predict_result["sql_injection"],
+            )
+        print("after predect -----------------")
         file_size = convert_file_size(uploaded_file.size)
         serializer_data["file_size"] = file_size
 
@@ -387,6 +420,14 @@ class FileViewSet(ViewSet):
         },
     )
     def update(self, request, pk=None):
+        predict_result = predict(self, request)
+        if predict_result["sql_injection"] == True:
+            return BaseResponse(
+                data=None,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                message=predict_result["message"],
+                error=predict_result["sql_injection"],
+            )
         user_id = None
         if "HTTP_AUTHORIZATION" in request.META:
             auth_header = request.META["HTTP_AUTHORIZATION"]
@@ -531,5 +572,89 @@ class FileViewSet(ViewSet):
             data=serializer.data,
             status_code=status.HTTP_200_OK,
             message="Here are some results for your search.",
+            error=False,
+        )
+
+    @extend_schema(
+        examples=[
+            OpenApiExample(
+                name="Example", value={"title": "string';DELETE FROM file; --"}
+            )
+        ],
+        responses=None,
+        description="Search by title",
+    )
+    def search_by_title_injectable(self, request):
+        #  "title": "string';DELETE FROM file; --"
+
+        title = request.data.get("title", None)
+
+        query = "SELECT * FROM file WHERE title ILIKE '%s';" % title
+        files = File.objects.raw(query)
+
+        serializer = FileSerializer(files, many=True)
+
+        return BaseResponse(
+            data=serializer.data,
+            status_code=status.HTTP_200_OK,
+            message="Here are some results for your search.",
+            error=False,
+        )
+
+    @extend_schema(
+        examples=[
+            OpenApiExample(
+                name="Example", value={"title": "string';DELETE FROM file; --"}
+            )
+        ],
+        responses=None,
+        description="Search by title",
+    )
+    def search_by_title_injectable_detected(self, request):
+        #  "title": "string';DELETE FROM file; --"
+        predict_result = predict(self, request)
+        if predict_result["sql_injection"] == True:
+            return BaseResponse(
+                data=None,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                message=predict_result["message"],
+                error=predict_result["sql_injection"],
+            )
+        title = request.data.get("title", None)
+        query = "SELECT * FROM file WHERE title ILIKE '%s';" % title
+        files = File.objects.raw(query)
+        serializer = FileSerializer(files, many=True)
+        return BaseResponse(
+            data=serializer.data,
+            status_code=status.HTTP_200_OK,
+            message="Here are some results for your search.",
+            error=False,
+        )
+
+    def test(self, request, pk=None):
+        file_id = pk
+        if not file_id:
+            return BaseResponse(
+                data=None,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                message="File ID is required",
+                error=True,
+            )
+
+        try:
+
+            file_obj = File.objects.get(pk=file_id)
+        except File.DoesNotExist:
+            return BaseResponse(
+                data=None,
+                status_code=status.HTTP_404_NOT_FOUND,
+                message="File does not exist.",
+                error=True,
+            )
+        serializer = FileSerializer(file_obj)
+        return BaseResponse(
+            data=serializer.data,
+            status_code=status.HTTP_200_OK,
+            message="File retrieved successfully.",
             error=False,
         )
