@@ -14,6 +14,7 @@ from keras.models import load_model
 # malware_classifier = tf.keras.models.load_model("/app/mlmodels/sqlinjection_model/sqli_model.h5")
 model = tf.keras.models.load_model("/app/mlmodels/sqlinjection_model/sqli_model_v1.h5")
 
+
 def preprocess_query(query):
     if not isinstance(query, str):
         return [0, 0, 0]
@@ -89,7 +90,7 @@ def preprocess_query(query):
 
 def predict_single_query(query):
     features = preprocess_query(query)
-    features = np.array(features).reshape(1, 3)
+    features = np.array(features).reshape(1, 1, 3)
     prediction = model.predict(features)
     prediction_label = "sqli" if prediction[0] >= 4.5 else "non-sqli"
     return {
@@ -108,11 +109,11 @@ def predict(self, request):
         if query:
             prediction = predict_single_query(query)
             predictions[field] = prediction
-            print("**********")
-            print(field)
-            print(query)
-            print(prediction)
-            print("**********")
+            # print("**********")
+            # print(field)
+            # print(query)
+            # print(prediction)
+            # print("**********")
         else:
             predictions[field] = {"error": "No query provided for this field"}
 
