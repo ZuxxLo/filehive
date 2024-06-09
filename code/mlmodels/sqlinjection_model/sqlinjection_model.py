@@ -4,12 +4,15 @@ from django.shortcuts import render
 from utils.response.base_response import BaseResponse
 from rest_framework import status
 import os
+import tensorflow as tf
+from keras.models import load_model
 
 # Load the model
-current_dir = os.path.dirname(os.path.abspath(__file__))
-model_path = os.path.join(current_dir, "sqlimodel.joblib")
-model = joblib.load(model_path)
-
+# current_dir = os.path.dirname(os.path.abspath(__file__))
+# model_path = os.path.join(current_dir, "sqlimodel.joblib")
+# model = joblib.load(model_path)
+# malware_classifier = tf.keras.models.load_model("/app/mlmodels/sqlinjection_model/sqli_model.h5")
+model = tf.keras.models.load_model("/app/mlmodels/sqlinjection_model/sqli_model_v1.h5")
 
 def preprocess_query(query):
     if not isinstance(query, str):

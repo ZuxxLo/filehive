@@ -55,6 +55,7 @@ class RegisterRequestSerializer(serializers.Serializer):
             }
         ),
         400: OpenApiResponse(description="Bad request, invalid data"),
+        406: OpenApiResponse(description="Sql Injection detected"),
     },
 )
 class RegisterView(APIView):
@@ -170,19 +171,20 @@ class LoginRequestSerializer(serializers.Serializer):
             description="User not verifie  d (verification email sent)"
         ),
         404: OpenApiResponse(description="User not found"),
+        406: OpenApiResponse(description="Sql Injection detected"),
     },
 )
 class LoginView(APIView):
 
     def post(self, request):
-        predict_result = predict(self, request)
-        if predict_result["sql_injection"] == True:
-            return BaseResponse(
-                data=None,
-                status_code=status.HTTP_400_BAD_REQUEST,
-                message=predict_result["message"],
-                error=predict_result["sql_injection"],
-            )
+        # predict_result = predict(self, request)
+        # if predict_result["sql_injection"] == True:
+        #     return BaseResponse(
+        #         data=None,
+        #         status_code=status.HTTP_400_BAD_REQUEST,
+        #         message=predict_result["message"],
+        #         error=predict_result["sql_injection"],
+        #     )
         email = request.data["email"]
         password = request.data["password"]
 
@@ -257,6 +259,7 @@ class SendResetEmailRequestSerializer(serializers.Serializer):
         200: OpenApiResponse(description="Reset password email sent successfully"),
         400: OpenApiResponse(description="Bad request, invalid request data"),
         404: OpenApiResponse(description="User not found"),
+        406: OpenApiResponse(description="Sql Injection detected"),
     },
 )
 class SendResetEmail(APIView):
@@ -378,6 +381,7 @@ class ResetPasswordRequestSerializer(serializers.Serializer):
         400: OpenApiResponse(description="Bad request, Provide new password"),
         403: OpenApiResponse(description="User not verified (verification email sent)"),
         404: OpenApiResponse(description="User not found"),
+        406: OpenApiResponse(description="Sql Injection detected"),
     },
 )
 class ResetPasswordView(APIView):
@@ -462,6 +466,7 @@ class UpdatePasswordRequestSerializer(serializers.Serializer):
         401: OpenApiResponse(
             description="UNAUTHIRIZED | Invalide Token | token has expired | decoding_token_error"
         ),
+        406: OpenApiResponse(description="Sql Injection detected"),
     },
 )
 class UpdatePasswordView(APIView):
@@ -541,6 +546,7 @@ class UpdateUserInfoRequestSerializer(serializers.Serializer):
             description="UNAUTHIRIZED | Invalide Token | token has expired | decoding_token_error"
         ),
         404: OpenApiResponse(description="User Not Found"),
+        406: OpenApiResponse(description="Sql Injection detected"),
     },
 )
 class UpdateUserInfoView(APIView):

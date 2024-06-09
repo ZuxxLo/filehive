@@ -19,6 +19,7 @@ from drf_spectacular.utils import (
     OpenApiParameter,
 )
 from mlmodels.sqlinjection_model.sqlinjection_model import predict
+from .utils import map_model_to_file
 from django.conf import settings
 from jwt import decode
 
@@ -147,7 +148,9 @@ class FileViewSet(ViewSet):
                 description="All files retrieved successfully.",
                 response=FileSerializer(many=True),
             ),
-            406: OpenApiResponse(description="File type is Not Allowed"),
+            415: OpenApiResponse(description="File type is Not Allowed"),
+            406: OpenApiResponse(description="the file (file_type) is dangerous || SQL injection detected"),
+
         },
         examples=[
             OpenApiExample(
@@ -192,17 +195,19 @@ class FileViewSet(ViewSet):
 
         # serializer_data = request.data.copy()
         serializer_data = request.data
-
         serializer_data["owner"] = owner_id
-        file_extension = str(serializer_data["file"]).split(".")[
-            -1
-        ]  # Extract file extension
         uploaded_file = request.FILES.get("file")
+        
+        file_extension = str(serializer_data["file"]).split(".")[-1] 
+      
+        # Extract file extension
+        
+
         result = validate_file_type(file=uploaded_file, ext=file_extension)
         if result == False:
             return BaseResponse(
                 data="",
-                status_code=status.HTTP_406_NOT_ACCEPTABLE,
+                status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
                 message="File type is Not Allowed",
                 error=True,
             )
@@ -210,17 +215,29 @@ class FileViewSet(ViewSet):
             serializer_data["file_type"] = file_extension
         else:
             serializer_data["file_type"] = result
+        
         # still the Ai-models implemenation here (before creating the file in the db)  55555
+        file_type = serializer_data["file_type"]
+        uploaded_file.seek(0)
+        file_bytes = uploaded_file.read()
+        prediction = map_model_to_file(file_type, file_bytes)
+        if prediction == 1:
+                return BaseResponse(
+                    data="",
+                    status_code=status.HTTP_406_NOT_ACCEPTABLE,
+                    message=f"the file which is {file_type} is dangerous",
+                    error=True,
+                )
+        # sqli detection
         predict_result = predict(self, request)
-
         if predict_result["sql_injection"] == True:
             return BaseResponse(
                 data=None,
-                status_code=status.HTTP_400_BAD_REQUEST,
+                status_code=status.HTTP_406_NOT_ACCEPTABLE,
                 message=predict_result["message"],
                 error=predict_result["sql_injection"],
             )
-        print("after predect -----------------")
+   
         file_size = convert_file_size(uploaded_file.size)
         serializer_data["file_size"] = file_size
 
@@ -418,6 +435,7 @@ class FileViewSet(ViewSet):
                     "": "",
                 },
             ),
+            406: OpenApiResponse(description="SQL injection detected"),
         },
     )
     def update(self, request, pk=None):

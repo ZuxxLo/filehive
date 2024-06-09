@@ -34,32 +34,33 @@ def extract_owner_id_from_token(auth_header):
 
 def validate_file_type(file, ext):
     allowed_types = ["rar", "zip", "png", "jpg", "jpeg", "svg", "pdf", "pe32", "pe32+"]
-    #pe32+ is for 64bit exe    
     file_magic = magic.Magic()
     file_info = file_magic.from_buffer(file.read())
     file_type = file_info.split()[0].lower()
+    #pe32+ is for 64bit exe  
     if file_type not in allowed_types:
-            return False
+                return False
+  
     if ext in allowed_types:
-        if ext == "jpg":
-            if file_type == "jpeg":
+            if ext == "jpg":
+                if file_type == "jpeg":
+                    return True
+                else:
+                    return False
+            if ext == "exe":
+                if file_type == "pe32" or file_type == "pe32+":
+                    return True
+                else: 
+                    return False
+            if file_type == ext:
                 return True
-            else:
-                return False
-        
-        if ext == "exe":
-            if file_type == "pe32" or file_type == "pe32+":
-                return True
-            else: 
-                return False
-        if file_type == ext:
-            return True
+    #  in case there is no extetion with the file
     else:
-        if file_type == "pe32" or file_type == "pe32+":
-            return "exe"
-        if file_type == "jpeg":
-            return "jpg"
-        return file_type
-
-
+            if file_type == "pe32" or file_type == "pe32+":
+                return "exe"
+            if file_type == "jpeg":
+                return "jpg"
+            else: 
+                return file_type
+   
     
