@@ -52,6 +52,8 @@ class User(AbstractUser):
     profilePicture = models.ImageField(
         upload_to=user_directory_path, blank=True
     )  # don't forget to set the mdeia location
+    # adding Warning col
+    warnings_count = models.IntegerField(default=0)
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []

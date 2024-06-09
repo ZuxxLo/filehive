@@ -2,6 +2,7 @@ from utils.tools import (
     extract_owner_id_from_token,
     convert_file_size,
     validate_file_type,
+    check_user_counts
 )
 
 import numpy as np
@@ -149,7 +150,7 @@ class FileViewSet(ViewSet):
                 response=FileSerializer(many=True),
             ),
             415: OpenApiResponse(description="File type is Not Allowed"),
-            406: OpenApiResponse(description="the file (file_type) is dangerous || SQL injection detected"),
+            406: OpenApiResponse(description="the file (file_type) is dangerous || SQL injection detected + ban status"),
 
         },
         examples=[
@@ -192,7 +193,7 @@ class FileViewSet(ViewSet):
                 message="Token is invalid",
                 error=True,
             )
-
+        user = User.objects.filter(id=owner_id).first()
         # serializer_data = request.data.copy()
         serializer_data = request.data
         serializer_data["owner"] = owner_id
@@ -222,19 +223,24 @@ class FileViewSet(ViewSet):
         file_bytes = uploaded_file.read()
         prediction = map_model_to_file(file_type, file_bytes)
         if prediction == 1:
+                
+                message = f"the file which is {file_type} is dangerous, "
+                message += check_user_counts(user)
                 return BaseResponse(
                     data="",
                     status_code=status.HTTP_406_NOT_ACCEPTABLE,
-                    message=f"the file which is {file_type} is dangerous",
+                    message=message,
                     error=True,
                 )
         # sqli detection
         predict_result = predict(self, request)
         if predict_result["sql_injection"] == True:
+            message = f"Sql Injection Detected, "
+            message += check_user_counts(user)
             return BaseResponse(
                 data=None,
                 status_code=status.HTTP_406_NOT_ACCEPTABLE,
-                message=predict_result["message"],
+                message=message,
                 error=predict_result["sql_injection"],
             )
    
@@ -435,15 +441,18 @@ class FileViewSet(ViewSet):
                     "": "",
                 },
             ),
-            406: OpenApiResponse(description="SQL injection detected"),
+            406: OpenApiResponse(description="SQL injection detected + ban status"),
         },
     )
     def update(self, request, pk=None):
+        user = User.objects.filter(id=request.user.id).first()
         predict_result = predict(self, request)
         if predict_result["sql_injection"] == True:
+            message = f"Sql Injection Detected, "
+            message += check_user_counts(user)
             return BaseResponse(
                 data=None,
-                status_code=status.HTTP_400_BAD_REQUEST,
+                status_code=status.HTTP_406_NOT_ACCEPTABLE,
                 message=predict_result["message"],
                 error=predict_result["sql_injection"],
             )

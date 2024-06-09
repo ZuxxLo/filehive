@@ -199,6 +199,9 @@ AUTH_USER_MODEL = "filehive_auth.User"
 # Email: admin@admin.com
 # password: filehive
 
+# pgadmin4-panel creds
+# Email: admin@admin.com
+# password: dean1234
 
 INTERNAL_IPS = [
     "127.0.0.1",

@@ -27,7 +27,7 @@ from jwt import decode, exceptions
 from file.models import File
 from file.serializers import FileSerializer
 from mlmodels.sqlinjection_model.sqlinjection_model import predict
-
+from utils.tools import check_user_counts
 
 class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer
@@ -65,7 +65,7 @@ class RegisterView(APIView):
         if predict_result["sql_injection"] == True:
             return BaseResponse(
                 data=None,
-                status_code=status.HTTP_400_BAD_REQUEST,
+                status_code=status.HTTP_406_NOT_ACCEPTABLE,
                 message=predict_result["message"],
                 error=predict_result["sql_injection"],
             )
@@ -177,22 +177,27 @@ class LoginRequestSerializer(serializers.Serializer):
 class LoginView(APIView):
 
     def post(self, request):
-        # predict_result = predict(self, request)
-        # if predict_result["sql_injection"] == True:
-        #     return BaseResponse(
-        #         data=None,
-        #         status_code=status.HTTP_400_BAD_REQUEST,
-        #         message=predict_result["message"],
-        #         error=predict_result["sql_injection"],
-        #     )
+    #    can register warnings here
+        predict_result = predict(self, request)
+        if predict_result["sql_injection"] == True:
+            return BaseResponse(
+                data=None,
+                status_code=status.HTTP_406_NOT_ACCEPTABLE,
+                message=predict_result["message"],
+                error=predict_result["sql_injection"],
+            )
         email = request.data["email"]
         password = request.data["password"]
 
         user = User.objects.filter(email=email).first()
+        
         if user is None:
             raise AuthenticationFailed("user not found!")
         if not user.check_password(password):
             raise AuthenticationFailed("incorrect password")
+        if not user.is_active:
+            raise AuthenticationFailed("Your Account is Banned for Malicious Activity!")
+        
         if not user.is_verified:
             email_subject = "verify your account"
             message = render_to_string(
@@ -268,7 +273,7 @@ class SendResetEmail(APIView):
         if predict_result["sql_injection"] == True:
             return BaseResponse(
                 data=None,
-                status_code=status.HTTP_400_BAD_REQUEST,
+                status_code=status.HTTP_406_NOT_ACCEPTABLE,
                 message=predict_result["message"],
                 error=predict_result["sql_injection"],
             )
@@ -386,11 +391,12 @@ class ResetPasswordRequestSerializer(serializers.Serializer):
 )
 class ResetPasswordView(APIView):
     def post(self, request):
+    
         predict_result = predict(self, request)
         if predict_result["sql_injection"] == True:
             return BaseResponse(
                 data=None,
-                status_code=status.HTTP_400_BAD_REQUEST,
+                status_code=status.HTTP_406_NOT_ACCEPTABLE,
                 message=predict_result["message"],
                 error=predict_result["sql_injection"],
             )
@@ -466,19 +472,23 @@ class UpdatePasswordRequestSerializer(serializers.Serializer):
         401: OpenApiResponse(
             description="UNAUTHIRIZED | Invalide Token | token has expired | decoding_token_error"
         ),
-        406: OpenApiResponse(description="Sql Injection detected"),
+        406: OpenApiResponse(description="Sql Injection detected + ban status"),
     },
 )
 class UpdatePasswordView(APIView):
     permission_classes = [IsAuthenticated]
-
+    
     def put(self, request):
+        user = User.objects.filter(id=request.user.id).first()
         predict_result = predict(self, request)
         if predict_result["sql_injection"] == True:
+            
+            message = f"Sql Injection detected, "
+            message += check_user_counts(user, user.warnings_count)
             return BaseResponse(
                 data=None,
-                status_code=status.HTTP_400_BAD_REQUEST,
-                message=predict_result["message"],
+                status_code=status.HTTP_406_NOT_ACCEPTABLE,
+                message=message,
                 error=predict_result["sql_injection"],
             )
 
@@ -546,19 +556,23 @@ class UpdateUserInfoRequestSerializer(serializers.Serializer):
             description="UNAUTHIRIZED | Invalide Token | token has expired | decoding_token_error"
         ),
         404: OpenApiResponse(description="User Not Found"),
-        406: OpenApiResponse(description="Sql Injection detected"),
+        406: OpenApiResponse(description="Sql Injection detected + ban status"),
     },
 )
 class UpdateUserInfoView(APIView):
     permission_classes = [IsAuthenticated]
 
     def put(self, request):
+        user = User.objects.filter(id=request.user.id).first()
+        
         predict_result = predict(self, request)
         if predict_result["sql_injection"] == True:
+            message = "Sql Injection detected, "
+            message += check_user_counts(user, user.warnings_count)
             return BaseResponse(
                 data=None,
-                status_code=status.HTTP_400_BAD_REQUEST,
-                message=predict_result["message"],
+                status_code=status.HTTP_406_NOT_ACCEPTABLE,
+                message=message,
                 error=predict_result["sql_injection"],
             )
         auth_header = request.META.get("HTTP_AUTHORIZATION")

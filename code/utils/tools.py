@@ -63,4 +63,15 @@ def validate_file_type(file, ext):
             else: 
                 return file_type
    
-    
+
+
+def check_user_counts(user):
+    user.warnings_count += 1
+    if user.warnings_count == 3: 
+        user.is_active = False
+        user.warnings_count = 0
+        user.save()
+        return "Your account has been banned due to multiple warnings."
+    else:
+        user.save()
+        return f"You have {3-user.warnings_count} warnings left before your account is banned."
