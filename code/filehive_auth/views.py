@@ -168,7 +168,7 @@ class LoginRequestSerializer(serializers.Serializer):
         ),
         400: OpenApiResponse(description="Bad request, invalid creds"),
         403: OpenApiResponse(
-            description="User not verifie  d (verification email sent)"
+            description="User not verified (verification email sent) || or User is Banned"
         ),
         404: OpenApiResponse(description="User not found"),
         406: OpenApiResponse(description="Sql Injection detected"),
@@ -196,7 +196,12 @@ class LoginView(APIView):
         if not user.check_password(password):
             raise AuthenticationFailed("incorrect password")
         if not user.is_active:
-            raise AuthenticationFailed("Your Account is Banned for Malicious Activity!")
+             return Response(
+                  {
+                 "message": "Your Account is Banned",
+                 },
+                 status=status.HTTP_403_FORBIDDEN,
+             )
         
         if not user.is_verified:
             email_subject = "verify your account"
