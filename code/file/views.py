@@ -471,7 +471,7 @@ class FileViewSet(ViewSet):
         predict_result = predict(self, request)
         if predict_result["sql_injection"] == True:
             message = "Sql Injection detected, "
-            warning_message = check_user_counts(user, user.warnings_count)
+            warning_message = check_user_counts(user)
             if warning_message == "banned":
                 message += "Your account has been banned due to multiple warnings."
                 return BaseResponse(
