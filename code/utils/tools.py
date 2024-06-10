@@ -71,7 +71,8 @@ def check_user_counts(user):
         user.is_active = False
         user.warnings_count = 0
         user.save()
-        return "Your account has been banned due to multiple warnings."
+        # return "Your account has been banned due to multiple warnings."
+        return "banned"
     else:
         user.save()
         return f"You have {3-user.warnings_count} warnings left before your account is banned."

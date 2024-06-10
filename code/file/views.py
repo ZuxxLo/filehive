@@ -150,7 +150,8 @@ class FileViewSet(ViewSet):
                 response=FileSerializer(many=True),
             ),
             415: OpenApiResponse(description="File type is Not Allowed"),
-            406: OpenApiResponse(description="the file (file_type) is dangerous || SQL injection detected + ban status"),
+            406: OpenApiResponse(description="the file (file_type) is dangerous || SQL injection detected + warning count"),
+            403: OpenApiResponse(description="User is banned") 
 
         },
         examples=[
@@ -225,24 +226,44 @@ class FileViewSet(ViewSet):
         if prediction == 1:
                 
                 message = f"the file which is {file_type} is dangerous, "
-                message += check_user_counts(user)
-                return BaseResponse(
-                    data="",
-                    status_code=status.HTTP_406_NOT_ACCEPTABLE,
-                    message=message,
+                warning_message = check_user_counts(user)
+                if warning_message == "banned":
+                    message += "Your account has been banned due to multiple warnings."
+                    return BaseResponse(
+                    data=None,
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    message= message,
                     error=True,
                 )
+                else: 
+                    message += warning_message
+                    return BaseResponse(
+                        data=None,
+                        status_code=status.HTTP_406_NOT_ACCEPTABLE,
+                        message=message,
+                        error=True,
+                    )
         # sqli detection
         predict_result = predict(self, request)
         if predict_result["sql_injection"] == True:
-            message = f"Sql Injection Detected, "
-            message += check_user_counts(user)
-            return BaseResponse(
-                data=None,
-                status_code=status.HTTP_406_NOT_ACCEPTABLE,
-                message=message,
-                error=predict_result["sql_injection"],
-            )
+                message = "Sql Injection Detected, " 
+                warning_message = check_user_counts(user)
+                if warning_message == "banned":
+                    message += "Your account has been banned due to multiple warnings."
+                    return BaseResponse(
+                    data=None,
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    message= message,
+                    error=predict_result["sql_injection"],
+                )
+                else: 
+                    message += warning_message
+                    return BaseResponse(
+                       data=None,
+                       status_code=status.HTTP_406_NOT_ACCEPTABLE,
+                       message=message,
+                       error=predict_result["sql_injection"],
+                    )
    
         file_size = convert_file_size(uploaded_file.size)
         serializer_data["file_size"] = file_size
@@ -441,21 +462,32 @@ class FileViewSet(ViewSet):
                     "": "",
                 },
             ),
-            406: OpenApiResponse(description="SQL injection detected + ban status"),
+            406: OpenApiResponse(description="SQL injection detected "),
+            403: OpenApiResponse(description="User is banned")
         },
     )
     def update(self, request, pk=None):
         user = User.objects.filter(id=request.user.id).first()
         predict_result = predict(self, request)
         if predict_result["sql_injection"] == True:
-            message = f"Sql Injection Detected, "
-            message += check_user_counts(user)
-            return BaseResponse(
+            message = "Sql Injection detected, "
+            warning_message = check_user_counts(user, user.warnings_count)
+            if warning_message == "banned":
+                message += "Your account has been banned due to multiple warnings."
+                return BaseResponse(
+                    data=None,
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    message= message,
+                    error=predict_result["sql_injection"],
+                )
+            else:
+                message += warning_message
+                return BaseResponse(
                 data=None,
                 status_code=status.HTTP_406_NOT_ACCEPTABLE,
-                message=predict_result["message"],
+                message=message,
                 error=predict_result["sql_injection"],
-            )
+             )
         user_id = None
         if "HTTP_AUTHORIZATION" in request.META:
             auth_header = request.META["HTTP_AUTHORIZATION"]

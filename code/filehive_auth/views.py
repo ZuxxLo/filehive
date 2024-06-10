@@ -198,7 +198,7 @@ class LoginView(APIView):
         if not user.is_active:
              return Response(
                   {
-                 "message": "Your Account is Banned",
+                 "message": "Your Account is Banned due to Malicious Activity. Please Contact the Admins for more information.",
                  },
                  status=status.HTTP_403_FORBIDDEN,
              )
@@ -487,15 +487,24 @@ class UpdatePasswordView(APIView):
         user = User.objects.filter(id=request.user.id).first()
         predict_result = predict(self, request)
         if predict_result["sql_injection"] == True:
-            
             message = f"Sql Injection detected, "
-            message += check_user_counts(user, user.warnings_count)
-            return BaseResponse(
+            warning_message = check_user_counts(user, user.warnings_count)
+            if warning_message == "banned":
+                message += "Your account has been banned due to multiple warnings."
+                return BaseResponse(
+                    data=None,
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    message= message,
+                    error=predict_result["sql_injection"],
+                )
+            else:
+                message += warning_message
+                return BaseResponse(
                 data=None,
                 status_code=status.HTTP_406_NOT_ACCEPTABLE,
                 message=message,
                 error=predict_result["sql_injection"],
-            )
+             )
 
         old_password = request.data["old_password"]
         new_password = request.data["new_password"]
@@ -560,6 +569,7 @@ class UpdateUserInfoRequestSerializer(serializers.Serializer):
         401: OpenApiResponse(
             description="UNAUTHIRIZED | Invalide Token | token has expired | decoding_token_error"
         ),
+        403: OpenApiResponse(description="User is Banned"),
         404: OpenApiResponse(description="User Not Found"),
         406: OpenApiResponse(description="Sql Injection detected + ban status"),
     },
@@ -573,13 +583,23 @@ class UpdateUserInfoView(APIView):
         predict_result = predict(self, request)
         if predict_result["sql_injection"] == True:
             message = "Sql Injection detected, "
-            message += check_user_counts(user, user.warnings_count)
-            return BaseResponse(
+            warning_message = check_user_counts(user, user.warnings_count)
+            if warning_message == "banned":
+                message += "Your account has been banned due to multiple warnings."
+                return BaseResponse(
+                    data=None,
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    message= message,
+                    error=predict_result["sql_injection"],
+                )
+            else:
+                message += warning_message
+                return BaseResponse(
                 data=None,
                 status_code=status.HTTP_406_NOT_ACCEPTABLE,
                 message=message,
                 error=predict_result["sql_injection"],
-            )
+             )
         auth_header = request.META.get("HTTP_AUTHORIZATION")
         parts = auth_header.split(" ")
         access_token = parts[1]
