@@ -2,7 +2,7 @@ from utils.tools import (
     extract_owner_id_from_token,
     convert_file_size,
     validate_file_type,
-    check_user_counts
+    check_user_counts,
 )
 from attacks_logs.models import Log
 from attacks_logs.serializers import LogSerializer
@@ -27,6 +27,7 @@ from jwt import decode
 
 from django.http import JsonResponse
 from datetime import datetime
+
 
 def convert_ndarray_to_list(data):
     if isinstance(data, np.ndarray):
@@ -151,9 +152,10 @@ class FileViewSet(ViewSet):
                 response=FileSerializer(many=True),
             ),
             415: OpenApiResponse(description="File type is Not Allowed"),
-            406: OpenApiResponse(description="the file (file_type) is dangerous || SQL injection detected + warning count"),
-            403: OpenApiResponse(description="User is banned") 
-
+            406: OpenApiResponse(
+                description="the file (file_type) is dangerous || SQL injection detected + warning count"
+            ),
+            403: OpenApiResponse(description="User is banned"),
         },
         examples=[
             OpenApiExample(
@@ -200,11 +202,10 @@ class FileViewSet(ViewSet):
         serializer_data = request.data
         serializer_data["owner"] = owner_id
         uploaded_file = request.FILES.get("file")
-        
-        file_extension = str(serializer_data["file"]).split(".")[-1] 
-      
+
+        file_extension = str(serializer_data["file"]).split(".")[-1]
+
         # Extract file extension
-        
 
         result = validate_file_type(file=uploaded_file, ext=file_extension)
         if result == False:
@@ -218,94 +219,93 @@ class FileViewSet(ViewSet):
             serializer_data["file_type"] = file_extension
         else:
             serializer_data["file_type"] = result
-        
+
         # still the Ai-models implemenation here (before creating the file in the db)  55555
         file_type = serializer_data["file_type"]
         uploaded_file.seek(0)
         file_bytes = uploaded_file.read()
         prediction = map_model_to_file(file_type, file_bytes)
         if prediction == 1:
-                log_data = {
-                    "attack_type": "file_upload",
-                    "file" : uploaded_file,
-                    "user": f"user_{user.id}_{user.get_full_name()}",
-                    "attack_timing": datetime.now(),
-                    "attack_input": "NO INPUT"
-                }
-                log = Log(
-                    attack_type=log_data["attack_type"],
-                    file=log_data["file"],
-                    user=log_data["user"],
-                    attack_timing=log_data["attack_timing"],
-                    attack_input=log_data["attack_input"],
-                                     )
+            log_data = {
+                "attack_type": "file_upload",
+                "file": uploaded_file,
+                "user": f"user_{user.id}_{user.get_full_name()}",
+                "attack_timing": datetime.now(),
+                "attack_input": "NO INPUT",
+            }
+            log = Log(
+                attack_type=log_data["attack_type"],
+                file=log_data["file"],
+                user=log_data["user"],
+                attack_timing=log_data["attack_timing"],
+                attack_input=log_data["attack_input"],
+            )
 
-                log.save()
+            log.save()
 
-                        
-                message = f"the file which is {file_type} is dangerous, "
-                warning_message = check_user_counts(user)
-                if warning_message == "banned":
-                    message += "Your account has been banned due to multiple warnings."
-                    return BaseResponse(
+            message = f"the file which is {file_type} is dangerous, "
+            warning_message = check_user_counts(user)
+            if warning_message == "banned":
+                message += "Your account has been banned due to multiple warnings."
+                return BaseResponse(
                     data=None,
                     status_code=status.HTTP_403_FORBIDDEN,
-                    message= message,
+                    message=message,
                     error=True,
                 )
-                else: 
-                    message += warning_message
-                    return BaseResponse(
-                        data=None,
-                        status_code=status.HTTP_406_NOT_ACCEPTABLE,
-                        message=message,
-                        error=True,
-                    )
+            else:
+                message += warning_message
+                return BaseResponse(
+                    data=None,
+                    status_code=status.HTTP_406_NOT_ACCEPTABLE,
+                    message=message,
+                    error=True,
+                )
         # sqli detection
         predict_result = predict(self, request)
         if predict_result["sql_injection"] == True:
-                sql_queries = predict_result["sqli_queries"]
-                mal_input = ""
-                for query in sql_queries:
-                    if sql_queries.index(query) == len(sql_queries) - 1:
-                        mal_input += query 
-                    else:
-                        mal_input += query + " |||| "
-                log_data = {
-                    "attack_type": "sqli",
-                    "file" : None,
-                    "user": f"user_{user.id}_{user.get_full_name()}",
-                    "attack_timing": datetime.now(),
-                    "attack_input": mal_input
-                }
-                log = Log(
-                    attack_type=log_data["attack_type"],
-                    file=log_data["file"],
-                    user=log_data["user"],
-                    attack_timing=log_data["attack_timing"],
-                    attack_input=log_data["attack_input"],
-                                     )
+            sql_queries = predict_result["sqli_queries"]
+            mal_input = ""
+            for query in sql_queries:
+                if sql_queries.index(query) == len(sql_queries) - 1:
+                    mal_input += query
+                else:
+                    mal_input += query + " |||| "
+            log_data = {
+                "attack_type": "sqli",
+                "file": None,
+                "user": f"user_{user.id}_{user.get_full_name()}",
+                "attack_timing": datetime.now(),
+                "attack_input": mal_input,
+            }
+            log = Log(
+                attack_type=log_data["attack_type"],
+                file=log_data["file"],
+                user=log_data["user"],
+                attack_timing=log_data["attack_timing"],
+                attack_input=log_data["attack_input"],
+            )
 
-                log.save()
-                message = "Sql Injection Detected, " 
-                warning_message = check_user_counts(user)
-                if warning_message == "banned":
-                    message += "Your account has been banned due to multiple warnings."
-                    return BaseResponse(
+            log.save()
+            message = "Sql Injection Detected, "
+            warning_message = check_user_counts(user)
+            if warning_message == "banned":
+                message += "Your account has been banned due to multiple warnings."
+                return BaseResponse(
                     data=None,
                     status_code=status.HTTP_403_FORBIDDEN,
-                    message= message,
+                    message=message,
                     error=predict_result["sql_injection"],
                 )
-                else: 
-                    message += warning_message
-                    return BaseResponse(
-                       data=None,
-                       status_code=status.HTTP_406_NOT_ACCEPTABLE,
-                       message=message,
-                       error=predict_result["sql_injection"],
-                    )
-   
+            else:
+                message += warning_message
+                return BaseResponse(
+                    data=None,
+                    status_code=status.HTTP_406_NOT_ACCEPTABLE,
+                    message=message,
+                    error=predict_result["sql_injection"],
+                )
+
         file_size = convert_file_size(uploaded_file.size)
         serializer_data["file_size"] = file_size
 
@@ -504,7 +504,7 @@ class FileViewSet(ViewSet):
                 },
             ),
             406: OpenApiResponse(description="SQL injection detected "),
-            403: OpenApiResponse(description="User is banned")
+            403: OpenApiResponse(description="User is banned"),
         },
     )
     def update(self, request, pk=None):
@@ -514,24 +514,24 @@ class FileViewSet(ViewSet):
             sql_queries = predict_result["sqli_queries"]
             mal_input = ""
             for query in sql_queries:
-                    if sql_queries.index(query) == len(sql_queries) - 1:
-                        mal_input += query 
-                    else:
-                        mal_input += query + " |||| "
+                if sql_queries.index(query) == len(sql_queries) - 1:
+                    mal_input += query
+                else:
+                    mal_input += query + " |||| "
             log_data = {
-                    "attack_type": "sqli",
-                    "file" : None,
-                    "user": f"user_{user.id}_{user.get_full_name()}",
-                    "attack_timing": datetime.now(),
-                    "attack_input": mal_input
-                }
+                "attack_type": "sqli",
+                "file": None,
+                "user": f"user_{user.id}_{user.get_full_name()}",
+                "attack_timing": datetime.now(),
+                "attack_input": mal_input,
+            }
             log = Log(
-                    attack_type=log_data["attack_type"],
-                    file=log_data["file"],
-                    user=log_data["user"],
-                    attack_timing=log_data["attack_timing"],
-                    attack_input=log_data["attack_input"],
-                                     )
+                attack_type=log_data["attack_type"],
+                file=log_data["file"],
+                user=log_data["user"],
+                attack_timing=log_data["attack_timing"],
+                attack_input=log_data["attack_input"],
+            )
 
             log.save()
             message = "Sql Injection detected, "
@@ -541,17 +541,17 @@ class FileViewSet(ViewSet):
                 return BaseResponse(
                     data=None,
                     status_code=status.HTTP_403_FORBIDDEN,
-                    message= message,
+                    message=message,
                     error=predict_result["sql_injection"],
                 )
             else:
                 message += warning_message
                 return BaseResponse(
-                data=None,
-                status_code=status.HTTP_406_NOT_ACCEPTABLE,
-                message=message,
-                error=predict_result["sql_injection"],
-             )
+                    data=None,
+                    status_code=status.HTTP_406_NOT_ACCEPTABLE,
+                    message=message,
+                    error=predict_result["sql_injection"],
+                )
         user_id = None
         if "HTTP_AUTHORIZATION" in request.META:
             auth_header = request.META["HTTP_AUTHORIZATION"]
@@ -713,7 +713,7 @@ class FileViewSet(ViewSet):
 
         title = request.data.get("title", None)
 
-        query = "SELECT * FROM file WHERE title ILIKE '%s';" % title
+        query = "SELECT * FROM user WHERE first_name ILIKE '%s';" % title
         files = File.objects.raw(query)
 
         serializer = FileSerializer(files, many=True)
